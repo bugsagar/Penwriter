@@ -245,3 +245,23 @@ mark.sp-highlight {
     rgb(255 255 255 / 0) 100%
   );
 }
+
+/* ---------- Mobile notice & desktop container ---------- */
+.mobile-notice-screen {
+  display: flex;
+}
+
+.desktop-app-container {
+  display: none;
+}
+
+@media (min-width: 768px) and (not ((max-height: 500px) and (pointer: coarse))) {
+  .mobile-notice-screen {
+    display: none !important;
+  }
+  .desktop-app-container {
+    display: block !important;
+    height: 100%;
+  }
+}
+
