@@ -1,0 +1,247 @@
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/courier-prime/400.css';
+@import '@fontsource/courier-prime/700.css';
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-screenplay: 'Courier Prime', 'Courier New', ui-monospace, monospace;
+
+  /* ---------- Letters marketing tokens (homepage) ---------- */
+  --font-display: 'Inter Tight', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-hand: 'Caveat', 'Segoe Script', cursive;
+
+  --color-obsidian: #070709;
+  --color-paper-white: #ffffff;
+  --color-cloud-gray: #f5f5f5;
+  --color-sky-tint: #d7e6f5;
+  --color-charcoal: #60606c;
+  --color-slate-gray: #8b8b8b;
+  --color-ink-strong: #151515;
+  --color-surgical-blue: #2597d0;
+
+  --text-caption: 12px;
+  --leading-caption: 1.2;
+  --text-body-sm: 14px;
+  --leading-body-sm: 1.4;
+  --text-body-md: 16px;
+  --leading-body-md: 1.49;
+  --text-body-lg: 18px;
+  --leading-body-lg: 1.4;
+  --text-subheading: 20px;
+  --leading-subheading: 1.4;
+  --text-heading-sm: 28px;
+  --leading-heading-sm: 1.2;
+  --text-heading: 44px;
+  --leading-heading: 1.1;
+  --text-display: 80px;
+  --leading-display: 0.9;
+
+  --shadow-subtle-soft: rgba(36, 36, 40, 0.1) 0px 1px 2px 0px, rgba(36, 36, 40, 0.09) 0px 3px 3px 0px, rgba(36, 36, 40, 0.05) 0px 6px 4px 0px, rgba(36, 36, 40, 0.01) 0px 11px 4px 0px;
+  --shadow-atmos: rgba(16, 55, 132, 0.03) 0px 17px 37px 0px, rgba(16, 55, 132, 0.03) 0px 67px 67px 0px, rgba(16, 55, 132, 0.02) 0px 150px 90px 0px;
+
+  --gradient-sky: linear-gradient(180deg, #779bc1 0%, #9abfda 58%, #cbdcec 100%);
+
+  --color-ink-50: #f7f7f8;
+  --color-ink-100: #ecedee;
+  --color-ink-200: #dcdddf;
+  --color-ink-300: #bfc1c5;
+  --color-ink-400: #999ca2;
+  --color-ink-500: #7c7f86;
+  --color-ink-600: #62656c;
+  --color-ink-700: #4b4e54;
+  --color-ink-800: #303338;
+  --color-ink-900: #232529;
+  --color-ink-950: #17181b;
+
+  --color-brass-300: #d6b98a;
+  --color-brass-400: #c7a468;
+  --color-brass-500: #b08d4f;
+  --color-brass-600: #93733e;
+
+  --color-paper: #ffffff;
+
+  --shadow-paper: 0 1px 2px rgb(20 22 26 / 0.06), 0 8px 24px rgb(20 22 26 / 0.06);
+  --shadow-lift: 0 12px 32px rgb(20 22 26 / 0.14);
+}
+
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---------- Screenplay paper ---------- */
+
+.sp-block {
+  font-family: var(--sp-font, var(--font-screenplay));
+  font-size: var(--sp-size, 12pt);
+  line-height: 1;
+  outline: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+  color: #1a1a1a;
+}
+
+/* Scene heading: full width, bold */
+.sp-scene-heading {
+  font-weight: 700;
+  margin-bottom: 12pt;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* Action: full width */
+.sp-action {
+  margin-bottom: 12pt;
+}
+
+/* Character name: cue box centered across the full line, text middle aligned */
+.sp-character {
+  margin-bottom: 12pt;
+  text-transform: uppercase;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 2.5in;
+  text-align: center;
+}
+
+/* Dialogue: column middle-aligned across the line, text left aligned */
+.sp-dialogue {
+  margin-bottom: 12pt;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 3.5in;
+  text-align: left;
+}
+
+/* Parenthetical: same as dialogue */
+.sp-parenthetical {
+  margin-bottom: 12pt;
+  margin-left: 2.35in;
+  max-width: 2.5in;
+}
+
+/* Transition: right aligned */
+.sp-transition {
+  margin-bottom: 12pt;
+  margin-left: 2in;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* Shot */
+.sp-shot {
+  margin-bottom: 12pt;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* ---------- Editor selection / caret chrome ---------- */
+
+.sp-block::selection {
+  background: rgb(199 164 104 / 0.32);
+}
+
+.el-active {
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgb(176 141 79 / 0.55);
+  background: rgb(199 164 104 / 0.08);
+}
+
+.el-dim {
+  opacity: 0.28;
+}
+
+mark.sp-highlight {
+  background: rgb(240 208 116 / 0.55);
+  color: inherit;
+  border-radius: 2px;
+}
+
+/* ---------- Scrollbars ---------- */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ink-300) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--color-ink-300);
+  border-radius: 8px;
+}
+
+.dark * {
+  scrollbar-color: var(--color-ink-700) transparent;
+}
+
+.dark *::-webkit-scrollbar-thumb {
+  background: var(--color-ink-700);
+}
+
+/* ---------- Animations ---------- */
+
+@keyframes fade-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-slide-in {
+  animation: fade-slide-in 0.18s ease-out both;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+
+/* Paper sheen used for the writing surface */
+.paper-sheen {
+  background-image: linear-gradient(
+    90deg,
+    rgb(255 255 255 / 0) 0%,
+    rgb(0 0 0 / 0.012) 50%,
+    rgb(255 255 255 / 0) 100%
+  );
+}
