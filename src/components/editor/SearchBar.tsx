@@ -28,7 +28,7 @@ export function SearchBar({
   }
 
   return (
-    <div className="fixed left-1/2 top-12 z-40 w-[460px] -translate-x-1/2 rounded-xl border border-ink-200 bg-white p-2 shadow-lift dark:border-ink-700 dark:bg-ink-900">
+    <div className="fixed left-1/2 top-14 z-40 w-[calc(100vw-16px)] max-w-[460px] md:top-12 -translate-x-1/2 rounded-xl border border-ink-200 bg-white p-2 shadow-lift dark:border-ink-700 dark:bg-ink-900">
       <div className="flex items-center gap-1.5">
         <input
           autoFocus

@@ -17,6 +17,10 @@ interface PaperProps {
   activeMatch: number
   onSelect: (id: string) => void
   scrollToId: (id: string) => void
+  /** Phone layout: fluid page, no zoom, proportional indents. */
+  compact?: boolean
+  /** Phone layout: render only this page (scene). */
+  pageIndex?: number
 }
 
 export function Paper({
@@ -28,6 +32,8 @@ export function Paper({
   activeMatch,
   onSelect,
   scrollToId,
+  compact = false,
+  pageIndex,
 }: PaperProps) {
   const updateElement = useApp((s) => s.updateElement)
   const insertElements = useApp((s) => s.insertElements)
@@ -45,7 +51,10 @@ export function Paper({
   const [fitZoom, setFitZoom] = useState(1)
   useEffect(() => {
     const scroller = wrapRef.current?.closest('main')
-    if (!scroller) return
+    if (!scroller || compact) {
+      setFitZoom(1)
+      return
+    }
     const update = () => {
       const z = Math.min(1, (scroller.clientWidth - 48) / 816)
       setFitZoom((prev) => (Math.abs(prev - z) < 0.001 ? prev : z))
@@ -54,7 +63,7 @@ export function Paper({
     const ro = new ResizeObserver(update)
     ro.observe(scroller)
     return () => ro.disconnect()
-  }, [])
+  }, [compact])
 
   const registerRef = useCallback((id: string, el: HTMLDivElement | null) => {
     if (el) refs.current.set(id, el)
@@ -130,6 +139,15 @@ export function Paper({
     const target = e.target as HTMLElement
     if (target.closest('[data-elid]')) return
     if (readOnly) return
+    // Phone single-page view: blank space below a middle page keeps writing on that page.
+    if (pageIndex !== undefined && pageIndex < pages.length - 1) {
+      const pageLast = pages[pageIndex]?.[pages[pageIndex].length - 1]
+      if (pageLast) {
+        e.preventDefault()
+        focusId(pageLast.id, 'end')
+      }
+      return
+    }
     const lastEl = elements[elements.length - 1]
     if (!lastEl) {
       e.preventDefault()
@@ -147,10 +165,12 @@ export function Paper({
   return (
     <div ref={wrapRef} className="flex h-full flex-col">
       <div
-        className="paper-sheen relative mx-auto my-0 w-[8.5in]"
-        style={{ zoom: fitZoom } as CSSProperties}
+        className={
+          compact ? 'sp-compact relative w-full' : 'paper-sheen relative mx-auto my-0 w-[8.5in]'
+        }
+        style={compact ? undefined : ({ zoom: fitZoom } as CSSProperties)}
       >
-        {pages.map((pg, pi) => (
+        {pages.map((pg, pi) => pageIndex !== undefined && pi !== pageIndex ? null : (
           <div
             key={pi}
             ref={pi === 0 ? sheetRef : undefined}
@@ -159,10 +179,14 @@ export function Paper({
               {
                 '--sp-font': docFont,
                 '--sp-size': `${docSize}pt`,
-                marginBottom: pi < pages.length - 1 ? 14 : 0,
+                marginBottom: pi < pages.length - 1 && pageIndex === undefined ? 14 : 0,
               } as CSSProperties
             }
-            className="min-h-[11in] bg-paper px-[1.5in] pb-[1in] pt-[1in] text-ink-900 shadow-paper dark:bg-[#fdfdfc]"
+            className={
+              compact
+                ? 'pb-6 text-ink-900'
+                : 'min-h-[11in] bg-paper px-[1.5in] pb-[1in] pt-[1in] text-ink-900 shadow-paper dark:bg-[#fdfdfc]'
+            }
           >
             {pg.map((el) => {
               const i = indexOf.get(el.id) ?? 0
@@ -189,9 +213,9 @@ export function Paper({
                 </div>
               )
             })}
-            {pi === pages.length - 1 && (
+            {(pi === pages.length - 1 || (compact && pageIndex !== undefined)) && (
               /* continuation area: blank paper where a click keeps writing */
-              <div className="cursor-text select-none" style={{ height: '3in' }} />
+              <div className="cursor-text select-none" style={{ height: compact ? '40vh' : '3in' }} />
             )}
           </div>
         ))}

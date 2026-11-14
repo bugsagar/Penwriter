@@ -39,7 +39,7 @@ export function Sidebar({ project, activeId, onJump, onCollapse }: Props) {
   }
 
   return (
-    <aside className="flex h-full w-60 shrink-0 flex-col rounded-xl border border-ink-200/70 bg-white dark:border-ink-800 dark:bg-ink-900">
+    <aside className="flex h-full w-full shrink-0 flex-col rounded-xl md:w-60 border border-ink-200/70 bg-white dark:border-ink-800 dark:bg-ink-900">
       <div className="flex items-center justify-between px-3.5 pb-2 pt-3.5">
         <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-400 dark:text-ink-500">
           Pages
@@ -87,7 +87,7 @@ export function Sidebar({ project, activeId, onJump, onCollapse }: Props) {
                 </span>
               </button>
               <div
-                className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100"
                 onClick={(e) => e.stopPropagation()}
               >
                 <Dropdown

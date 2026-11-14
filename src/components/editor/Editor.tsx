@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { PanelLeftOpen, PanelRightOpen } from 'lucide-react'
+import { ChevronLeft, ChevronRight, PanelLeftOpen, PanelRightOpen, Plus } from 'lucide-react'
 import { useApp } from '../../store/useApp'
 import { countWords, pageCount } from '../../utils/layout'
 import { saveProjects } from '../../utils/storage'
-import { TopBar } from './TopBar'
+import { TopBar, SaveIndicator } from './TopBar'
+import { sceneChunks } from '../../utils/scenes'
+import { uid } from '../../utils/id'
 import { Sidebar } from './Sidebar'
 import { Inspector, type Focus } from './Inspector'
 import { Paper } from './Paper'
 import { SearchBar } from './SearchBar'
 import { SettingsDialog } from './SettingsDialog'
+import { MobileTypeBar } from './MobileTypeBar'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 export function Editor() {
   const project = useApp((s) => s.projects.find((p) => p.id === s.activeProjectId))
@@ -26,6 +30,11 @@ export function Editor() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [activeMatch, setActiveMatch] = useState(0)
+  const [pagesOpen, setPagesOpen] = useState(false)
+  const isMobile = useIsMobile()
+  const [pageIdx, setPageIdx] = useState(0)
+  const updateActive = useApp((s) => s.updateActive)
+  const insertElements = useApp((s) => s.insertElements)
 
   const elements = project?.elements ?? []
 
@@ -168,6 +177,40 @@ export function Editor() {
     [elements],
   )
 
+  const pageChunks = useMemo(() => sceneChunks(elements), [elements])
+  const pageTotal = Math.max(1, pageChunks.length)
+  const curPage = Math.min(pageIdx, pageTotal - 1)
+  const pageOf = useCallback(
+    (id: string) => pageChunks.findIndex((c) => c.some((el) => el.id === id)),
+    [pageChunks],
+  )
+
+  // Phone: follow the active search match onto its page.
+  const activeMatchId = matches[clampedMatch]?.id
+  useEffect(() => {
+    if (!isMobile || !activeMatchId) return
+    const p = pageOf(activeMatchId)
+    if (p !== -1) setPageIdx(p)
+  }, [isMobile, activeMatchId, pageOf])
+
+  const goToPage = (p: number) => {
+    setPageIdx(Math.max(0, Math.min(pageTotal - 1, p)))
+    document.querySelector('main')?.scrollTo({ top: 0 })
+  }
+
+  const addPage = () => {
+    const el = { id: uid('el'), type: 'SCENE_HEADING' as const, text: '' }
+    insertElements(elements.length, [el])
+    setPageIdx(pageChunks.length)
+    setFocus({ kind: 'element', id: el.id })
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const node = document.querySelector<HTMLElement>(`[data-elid="${el.id}"]`)
+        node?.focus()
+      }),
+    )
+  }
+
   if (!project) {
     return (
       <div className="flex h-screen items-center justify-center bg-ink-100 text-ink-500 dark:bg-ink-950">
@@ -175,6 +218,145 @@ export function Editor() {
         <button className="ml-2 font-medium text-brass-500" onClick={goHome}>
           Go to projects
         </button>
+      </div>
+    )
+  }
+
+  if (isMobile) {
+    const selectedId = focus.kind === 'element' ? focus.id : null
+    const navBtn =
+      'flex h-10 w-10 items-center justify-center rounded-full text-ink-700 transition-colors active:bg-ink-100 disabled:opacity-30 dark:text-ink-200 dark:active:bg-ink-800'
+    return (
+      <div className="flex h-dvh flex-col bg-white dark:bg-ink-950">
+        <TopBar
+          compact
+          project={project}
+          saveStatus={saveStatus}
+          writingMode={false}
+          onToggleSearch={toggleSearch}
+          onToggleWritingMode={() => {}}
+          onOpenSettings={() => setSettingsOpen(true)}
+          onGoHome={goHome}
+          onOpenPages={() => setPagesOpen(true)}
+        />
+
+        <main className="no-scrollbar relative min-h-0 flex-1 overflow-y-auto px-6 pt-3">
+          <textarea
+            value={project.title}
+            onChange={(e) => updateActive({ title: e.target.value.replace(/\n/g, ' ') })}
+            placeholder="Untitled Screenplay"
+            rows={1}
+            aria-label="Project title"
+            className="field-sizing-content w-full resize-none bg-transparent text-[30px] font-bold leading-[1.15] tracking-[-0.02em] text-ink-900 outline-none placeholder:text-ink-300 dark:text-ink-50"
+          />
+          <div className="mb-5 mt-1 flex items-center gap-2">
+            <span className="text-[12px] font-medium text-ink-400 dark:text-ink-500">
+              Page {curPage + 1} of {pageTotal}
+            </span>
+            <span className="h-1 w-1 rounded-full bg-ink-300 dark:bg-ink-700" />
+            <SaveIndicator status={saveStatus} />
+          </div>
+          <Paper
+            compact
+            pageIndex={curPage}
+            elements={elements}
+            selectedId={selectedId}
+            readOnly={searchOpen}
+            query={query}
+            matches={matches}
+            activeMatch={clampedMatch}
+            onSelect={(id) => setFocus({ kind: 'element', id })}
+            scrollToId={scrollToId}
+          />
+        </main>
+
+        {!searchOpen && (
+          <div className="pb-safe shrink-0 bg-white px-3 pt-1 dark:bg-ink-950">
+            {selectedId && <MobileTypeBar selectedId={selectedId} />}
+            <div className={selectedId ? "mt-2 flex items-center justify-between gap-2" : "flex items-center justify-between gap-2"}>
+              <div className="flex items-center rounded-full border border-ink-200/80 bg-white p-0.5 shadow-[0_1px_3px_rgb(20_22_26/0.08)] dark:border-ink-700 dark:bg-ink-900">
+                <button
+                  type="button"
+                  aria-label="Previous page"
+                  disabled={curPage === 0}
+                  onClick={() => goToPage(curPage - 1)}
+                  className={navBtn}
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPagesOpen(true)}
+                  className="min-w-[76px] px-1 text-center text-[13.5px] font-semibold tabular-nums text-ink-800 dark:text-ink-100"
+                >
+                  {curPage + 1} / {pageTotal}
+                </button>
+                <button
+                  type="button"
+                  aria-label="Next page"
+                  disabled={curPage >= pageTotal - 1}
+                  onClick={() => goToPage(curPage + 1)}
+                  className={navBtn}
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={addPage}
+                className="flex h-11 items-center gap-1.5 rounded-full border border-ink-200/80 bg-white px-4 text-[13.5px] font-medium text-ink-800 shadow-[0_1px_3px_rgb(20_22_26/0.08)] active:bg-ink-50 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100"
+              >
+                <Plus size={17} />
+                New page
+              </button>
+            </div>
+          </div>
+        )}
+
+        {pagesOpen && (
+          <div
+            className="fixed inset-0 z-50 flex bg-ink-950/40 dark:bg-black/50"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setPagesOpen(false)
+            }}
+          >
+            <div className="animate-fade-slide-in h-full w-[min(85vw,320px)] p-2">
+              <Sidebar
+                project={project}
+                activeId={pageChunks[curPage]?.[0]?.id ?? null}
+                onJump={(id) => {
+                  setPagesOpen(false)
+                  const p = pageOf(id)
+                  if (p !== -1) goToPage(p)
+                  setFocus({ kind: 'element', id })
+                }}
+                onCollapse={() => setPagesOpen(false)}
+              />
+            </div>
+          </div>
+        )}
+
+        {searchOpen && (
+          <SearchBar
+            query={query}
+            setQuery={setQuery}
+            matches={matches.length}
+            activeMatch={clampedMatch}
+            onNext={nextMatch}
+            onPrev={prevMatch}
+            onReplaceAll={replaceAll}
+            onClose={() => {
+              setSearchOpen(false)
+              setQuery('')
+            }}
+          />
+        )}
+
+        <SettingsDialog
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          onEnterWritingMode={() => setSettingsOpen(false)}
+        />
       </div>
     )
   }

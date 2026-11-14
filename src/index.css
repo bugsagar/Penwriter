@@ -14,6 +14,7 @@
   /* ---------- Letters marketing tokens (homepage) ---------- */
   --font-display: 'Inter Tight', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-hand: 'Caveat', 'Segoe Script', cursive;
+  --font-serif: 'New York', 'Iowan Old Style', 'Charter', Georgia, ui-serif, serif;
 
   --color-obsidian: #070709;
   --color-paper-white: #ffffff;
@@ -77,6 +78,11 @@
   color-scheme: dark;
 }
 
+.dark body,
+body.dark {
+  background: var(--color-ink-950);
+}
+
 html,
 body,
 #root {
@@ -85,6 +91,7 @@ body,
 
 body {
   margin: 0;
+  background: #ffffff;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -246,22 +253,69 @@ mark.sp-highlight {
   );
 }
 
-/* ---------- Mobile notice & desktop container ---------- */
-.mobile-notice-screen {
-  display: flex;
+/* ---------- Mobile (compact) screenplay page ---------- */
+/* On phones the US-Letter sheet becomes a fluid page, so inch-based
+   indents are swapped for proportional ones that keep the format readable. */
+.sp-compact .sp-block {
+  font-size: 15px;
+  line-height: 1.35;
+}
+.sp-compact .sp-scene-heading,
+.sp-compact .sp-action,
+.sp-compact .sp-character,
+.sp-compact .sp-dialogue,
+.sp-compact .sp-parenthetical,
+.sp-compact .sp-transition,
+.sp-compact .sp-shot {
+  margin-bottom: 14px;
+}
+.sp-compact .sp-character {
+  max-width: 70%;
+}
+.sp-compact .sp-dialogue {
+  max-width: 85%;
+}
+.sp-compact .sp-parenthetical {
+  margin-left: 20%;
+  max-width: 65%;
+}
+.sp-compact .sp-transition {
+  margin-left: 0;
+  text-align: right;
 }
 
-.desktop-app-container {
+.pb-safe {
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+.pt-safe {
+  padding-top: max(8px, env(safe-area-inset-top));
+}
+/* Phone: softer active-line marker than the desktop outline */
+.dark .sp-compact .sp-block {
+  color: var(--color-ink-100);
+}
+.sp-compact .el-active {
+  box-shadow: none;
+  background: rgb(199 164 104 / 0.12);
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 
-@media (min-width: 768px) and (not ((max-height: 500px) and (pointer: coarse))) {
-  .mobile-notice-screen {
-    display: none !important;
+@keyframes sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
   }
-  .desktop-app-container {
-    display: block !important;
-    height: 100%;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
-
+.animate-sheet-up {
+  animation: sheet-up 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}

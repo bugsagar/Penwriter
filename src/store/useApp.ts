@@ -32,6 +32,8 @@ interface AppStore {
   openEditor: (id: string) => void
   createProject: (input: CreateInput) => string
   createSample: () => string
+  /** Add (or refresh) a project read from a screenplay file. */
+  importProject: (project: Project) => string
   deleteProject: (id: string) => void
   duplicateProject: (id: string) => string
 
@@ -122,6 +124,18 @@ export const useApp = create<AppStore>((set, get) => {
     project.description = input.description.trim()
     project.type = input.type
     set((s) => ({ projects: [project, ...s.projects] }))
+    return project.id
+  },
+
+  importProject: (project) => {
+    set((s) => {
+      const exists = s.projects.some((p) => p.id === project.id)
+      return {
+        projects: exists
+          ? s.projects.map((p) => (p.id === project.id ? project : p))
+          : [project, ...s.projects],
+      }
+    })
     return project.id
   },
 

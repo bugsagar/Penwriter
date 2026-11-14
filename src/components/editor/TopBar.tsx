@@ -3,6 +3,8 @@ import {
   Check,
   ChevronDown,
   FileText,
+  Files,
+  MoreHorizontal,
   Minimize2,
   Moon,
   Search,
@@ -20,7 +22,7 @@ import { saveProjects } from '../../utils/storage'
 import { Dropdown, IconButton, MenuItem, cn } from '../ui'
 import type { Project, SaveStatus } from '../../types'
 
-function SaveIndicator({ status }: { status: SaveStatus }) {
+export function SaveIndicator({ status }: { status: SaveStatus }) {
   if (status === 'saving') {
     return (
       <span className="flex items-center gap-1.5 text-[11.5px] text-ink-400 dark:text-ink-500">
@@ -53,7 +55,15 @@ interface Props {
   onToggleWritingMode: () => void
   onOpenSettings: () => void
   onGoHome: () => void
+  /** Phone layout: one simple row with an overflow menu. */
+  compact?: boolean
+  onOpenPages?: () => void
 }
+
+const pill =
+  'flex items-center rounded-full border border-ink-200/80 bg-white text-ink-800 shadow-[0_1px_3px_rgb(20_22_26/0.08)] dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100'
+const pillBtn =
+  'flex h-10 w-11 items-center justify-center rounded-full transition-colors active:bg-ink-100 disabled:opacity-30 dark:active:bg-ink-800'
 
 function ToolBtn({
   title,
@@ -93,6 +103,8 @@ export function TopBar({
   onToggleWritingMode,
   onOpenSettings,
   onGoHome,
+  compact = false,
+  onOpenPages,
 }: Props) {
   const undo = useApp((s) => s.undo)
   const redo = useApp((s) => s.redo)
@@ -114,6 +126,97 @@ export function TopBar({
 
   const saveNow = () => {
     saveProjects(useApp.getState().projects)
+  }
+
+  if (compact) {
+    return (
+      <header className="pt-safe flex shrink-0 items-center justify-between gap-2 bg-white px-3 pb-2 pt-2 dark:bg-ink-950">
+        <button
+          type="button"
+          title="Back to projects"
+          aria-label="Back to projects"
+          onClick={onGoHome}
+          className={pill + ' h-11 w-11 justify-center'}
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <div className={pill + ' h-11 px-1'}>
+          <button type="button" aria-label="Undo" title="Undo" onClick={undo} disabled={undoStack.length === 0} className={pillBtn}>
+            <Undo2 size={19} />
+          </button>
+          <button type="button" aria-label="Redo" title="Redo" onClick={redo} disabled={redoStack.length === 0} className={pillBtn}>
+            <Redo2 size={19} />
+          </button>
+          <button type="button" aria-label="Find" title="Find & replace" onClick={onToggleSearch} className={pillBtn}>
+            <Search size={19} />
+          </button>
+          <Dropdown
+            trigger={
+              <button type="button" aria-label="More" title="More" className={pillBtn}>
+                <MoreHorizontal size={19} />
+              </button>
+            }
+        >
+          {(close) => (
+            <div className="min-w-52 py-0.5 [&_button]:py-2.5 [&_button]:text-[14px]">
+              <MenuItem
+                icon={<Files size={15} />}
+                label="Pages"
+                onClick={() => {
+                  close()
+                  onOpenPages?.()
+                }}
+              />
+              <div className="my-1 border-t border-ink-100 dark:border-ink-800" />
+              <MenuItem
+                icon={<FileText size={15} />}
+                label="Export PDF"
+                onClick={() => {
+                  close()
+                  doExport('pdf')
+                }}
+              />
+              <MenuItem
+                icon={<Sparkles size={15} />}
+                label="Export Fountain"
+                onClick={() => {
+                  close()
+                  doExport('fountain')
+                }}
+              />
+              <div className="my-1 border-t border-ink-100 dark:border-ink-800" />
+              <MenuItem
+                icon={theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+                label={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+                onClick={() => {
+                  close()
+                  setTheme(theme === 'dark' ? 'light' : 'dark')
+                }}
+              />
+              <MenuItem
+                icon={<Settings size={15} />}
+                label="Settings"
+                onClick={() => {
+                  close()
+                  onOpenSettings()
+                }}
+              />
+            </div>
+          )}
+          </Dropdown>
+        </div>
+        <button
+          type="button"
+          title="Done"
+          aria-label="Done"
+          // Close the on-screen keyboard.
+          onClick={() => (document.activeElement as HTMLElement | null)?.blur?.()}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-ink-900 text-white shadow-paper active:scale-95 dark:bg-ink-50 dark:text-ink-900"
+        >
+          <Check size={20} />
+        </button>
+      </header>
+    )
   }
 
   if (writingMode) {

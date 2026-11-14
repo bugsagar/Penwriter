@@ -84,8 +84,8 @@ export function FolderPicker({ open, onClose, onFolderSelect }: FolderPickerProp
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="flex h-[55vh] w-[600px] flex-col overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-2xl dark:border-ink-800 dark:bg-ink-900">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
+      <div className="flex h-[70vh] w-[600px] max-w-full sm:h-[55vh] flex-col overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-2xl dark:border-ink-800 dark:bg-ink-900">
         <div className="flex items-center justify-between border-b border-ink-200 p-4 dark:border-ink-800">
           <div className="flex items-center gap-2">
             <Folder className="h-5 w-5 text-ink-500" />

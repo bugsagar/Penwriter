@@ -98,7 +98,7 @@ export function Modal({
   if (!open) return null
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink-950/40 p-6 pt-[12vh] backdrop-blur-[2px] dark:bg-black/50"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink-950/40 p-3 pt-[6vh] sm:p-6 sm:pt-[12vh] backdrop-blur-[2px] dark:bg-black/50"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -117,7 +117,7 @@ export function Modal({
             <X size={16} />
           </IconButton>
         </div>
-        <div className="px-5 py-4">{children}</div>
+        <div className="px-4 py-4 sm:px-5">{children}</div>
       </div>
     </div>
   )
