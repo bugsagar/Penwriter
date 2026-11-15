@@ -257,7 +257,8 @@ mark.sp-highlight {
 /* On phones the US-Letter sheet becomes a fluid page, so inch-based
    indents are swapped for proportional ones that keep the format readable. */
 .sp-compact .sp-block {
-  font-size: 15px;
+  /* 16px keeps iOS from auto-zooming when a line is focused. */
+  font-size: 16px;
   line-height: 1.35;
 }
 .sp-compact .sp-scene-heading,
@@ -318,4 +319,15 @@ mark.sp-highlight {
 }
 .animate-sheet-up {
   animation: sheet-up 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* Phones: the app fits the screen — no sideways drift, no double-tap zoom.
+   (Pinch zoom is blocked by the viewport meta and a gesture guard in main.tsx.) */
+@media (max-width: 767px) {
+  html,
+  body {
+    overflow-x: hidden;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+  }
 }

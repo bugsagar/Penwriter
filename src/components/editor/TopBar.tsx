@@ -62,8 +62,6 @@ interface Props {
 
 const pill =
   'flex items-center rounded-full border border-ink-200/80 bg-white text-ink-800 shadow-[0_1px_3px_rgb(20_22_26/0.08)] dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100'
-const pillBtn =
-  'flex h-10 w-11 items-center justify-center rounded-full transition-colors active:bg-ink-100 disabled:opacity-30 dark:active:bg-ink-800'
 
 function ToolBtn({
   title,
@@ -129,36 +127,58 @@ export function TopBar({
   }
 
   if (compact) {
+    const roundBtn = pill + ' h-11 w-11 shrink-0 justify-center active:bg-ink-50 dark:active:bg-ink-800'
     return (
-      <header className="pt-safe flex shrink-0 items-center justify-between gap-2 bg-white px-3 pb-2 pt-2 dark:bg-ink-950">
+      <header className="pt-safe flex shrink-0 items-center gap-2 bg-white px-3 pb-2 pt-2 dark:bg-ink-950">
         <button
           type="button"
           title="Back to projects"
           aria-label="Back to projects"
           onClick={onGoHome}
-          className={pill + ' h-11 w-11 justify-center'}
+          className={roundBtn}
         >
           <ArrowLeft size={20} />
         </button>
-        <div className={pill + ' h-11 px-1'}>
-          <button type="button" aria-label="Undo" title="Undo" onClick={undo} disabled={undoStack.length === 0} className={pillBtn}>
-            <Undo2 size={19} />
-          </button>
-          <button type="button" aria-label="Redo" title="Redo" onClick={redo} disabled={redoStack.length === 0} className={pillBtn}>
-            <Redo2 size={19} />
-          </button>
-          <button type="button" aria-label="Find" title="Find & replace" onClick={onToggleSearch} className={pillBtn}>
-            <Search size={19} />
-          </button>
-          <Dropdown
-            trigger={
-              <button type="button" aria-label="More" title="More" className={pillBtn}>
-                <MoreHorizontal size={19} />
-              </button>
-            }
+        <input
+          value={project.title}
+          onChange={(e) => updateActive({ title: e.target.value })}
+          onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+          placeholder="Untitled"
+          aria-label="Script name"
+          enterKeyHint="done"
+          className="min-w-0 flex-1 truncate bg-transparent text-center text-[22px] font-bold tracking-[-0.02em] text-ink-950 outline-none placeholder:text-ink-300 dark:text-ink-50"
+        />
+        <Dropdown
+          trigger={
+            <button type="button" aria-label="More options" title="More options" className={roundBtn}>
+              <MoreHorizontal size={20} />
+            </button>
+          }
         >
           {(close) => (
-            <div className="min-w-52 py-0.5 [&_button]:py-2.5 [&_button]:text-[14px]">
+            <div className="min-w-56 py-0.5 [&_button]:py-2.5 [&_button]:text-[14px]">
+              <div className="px-3 pb-1.5 pt-1">
+                <SaveIndicator status={saveStatus} />
+              </div>
+              <div className="flex gap-1 px-1.5 pb-1.5">
+                <button
+                  type="button"
+                  onClick={undo}
+                  disabled={undoStack.length === 0}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-ink-100/70 text-ink-700 disabled:opacity-35 dark:bg-ink-800 dark:text-ink-200"
+                >
+                  <Undo2 size={15} /> Undo
+                </button>
+                <button
+                  type="button"
+                  onClick={redo}
+                  disabled={redoStack.length === 0}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-ink-100/70 text-ink-700 disabled:opacity-35 dark:bg-ink-800 dark:text-ink-200"
+                >
+                  <Redo2 size={15} /> Redo
+                </button>
+              </div>
+              <div className="my-1 border-t border-ink-100 dark:border-ink-800" />
               <MenuItem
                 icon={<Files size={15} />}
                 label="Pages"
@@ -167,7 +187,6 @@ export function TopBar({
                   onOpenPages?.()
                 }}
               />
-              <div className="my-1 border-t border-ink-100 dark:border-ink-800" />
               <MenuItem
                 icon={<FileText size={15} />}
                 label="Export PDF"
@@ -203,18 +222,7 @@ export function TopBar({
               />
             </div>
           )}
-          </Dropdown>
-        </div>
-        <button
-          type="button"
-          title="Done"
-          aria-label="Done"
-          // Close the on-screen keyboard.
-          onClick={() => (document.activeElement as HTMLElement | null)?.blur?.()}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-ink-900 text-white shadow-paper active:scale-95 dark:bg-ink-50 dark:text-ink-900"
-        >
-          <Check size={20} />
-        </button>
+        </Dropdown>
       </header>
     )
   }

@@ -77,22 +77,6 @@ function safeStats(p: Project) {
 
 /* ---------- pieces ---------- */
 
-function StatRing({ value, label, color }: { value: string; label: string; color: string }) {
-  return (
-    <div className="flex flex-col items-center gap-1.5">
-      <div
-        className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-white/70 dark:bg-ink-900/70"
-        style={{ boxShadow: `inset 0 0 0 4px ${color}` }}
-      >
-        <span className="text-[17px] font-semibold tabular-nums tracking-tight text-ink-900 dark:text-ink-50">
-          {value}
-        </span>
-      </div>
-      <span className="text-[12px] font-medium text-ink-500 dark:text-ink-400">{label}</span>
-    </div>
-  )
-}
-
 function ActionCard({
   icon,
   title,
@@ -319,16 +303,6 @@ export function Dashboard() {
             {greeting()}
           </h1>
           <p className="mt-2 text-[14.5px] text-ink-500 dark:text-ink-400">{summary}</p>
-
-          <div className="mt-7 flex items-start justify-center gap-6 sm:justify-start sm:gap-8">
-            <StatRing value={String(projects.length)} label="Scripts" color={ACCENT.amber} />
-            <StatRing value={String(totals.pages)} label="Pages" color={ACCENT.coral} />
-            <StatRing
-              value={totals.words >= 1000 ? `${(totals.words / 1000).toFixed(1)}k` : String(totals.words)}
-              label="Words"
-              color={ACCENT.violet}
-            />
-          </div>
         </section>
 
         {/* Quick actions */}

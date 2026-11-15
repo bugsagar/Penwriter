@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, PanelLeftOpen, PanelRightOpen, Plus } from '
 import { useApp } from '../../store/useApp'
 import { countWords, pageCount } from '../../utils/layout'
 import { saveProjects } from '../../utils/storage'
-import { TopBar, SaveIndicator } from './TopBar'
+import { TopBar } from './TopBar'
 import { sceneChunks } from '../../utils/scenes'
 import { uid } from '../../utils/id'
 import { Sidebar } from './Sidebar'
@@ -33,7 +33,6 @@ export function Editor() {
   const [pagesOpen, setPagesOpen] = useState(false)
   const isMobile = useIsMobile()
   const [pageIdx, setPageIdx] = useState(0)
-  const updateActive = useApp((s) => s.updateActive)
   const insertElements = useApp((s) => s.insertElements)
 
   const elements = project?.elements ?? []
@@ -240,22 +239,7 @@ export function Editor() {
           onOpenPages={() => setPagesOpen(true)}
         />
 
-        <main className="no-scrollbar relative min-h-0 flex-1 overflow-y-auto px-6 pt-3">
-          <textarea
-            value={project.title}
-            onChange={(e) => updateActive({ title: e.target.value.replace(/\n/g, ' ') })}
-            placeholder="Untitled Screenplay"
-            rows={1}
-            aria-label="Project title"
-            className="field-sizing-content w-full resize-none bg-transparent text-[30px] font-bold leading-[1.15] tracking-[-0.02em] text-ink-900 outline-none placeholder:text-ink-300 dark:text-ink-50"
-          />
-          <div className="mb-5 mt-1 flex items-center gap-2">
-            <span className="text-[12px] font-medium text-ink-400 dark:text-ink-500">
-              Page {curPage + 1} of {pageTotal}
-            </span>
-            <span className="h-1 w-1 rounded-full bg-ink-300 dark:bg-ink-700" />
-            <SaveIndicator status={saveStatus} />
-          </div>
+        <main className="no-scrollbar relative min-h-0 flex-1 touch-pan-y overflow-y-auto overflow-x-hidden px-6 pt-4">
           <Paper
             compact
             pageIndex={curPage}
