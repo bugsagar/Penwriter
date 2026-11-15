@@ -34,8 +34,9 @@ export function loadProjects(): Project[] {
     if (!raw) return []
     const parsed = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
-    // One-time move to the new default page font (Times serif).
-    const FONT_MIGRATION = 'reel.font.serif.v1'
+    // One-time move back to Courier Prime for scripts that were switched to
+    // Times when it was briefly the default.
+    const FONT_MIGRATION = 'reel.font.courier.v1'
     let migrate = false
     try {
       migrate = !localStorage.getItem(FONT_MIGRATION)
@@ -43,18 +44,26 @@ export function loadProjects(): Project[] {
     } catch {
       /* storage unavailable */
     }
-    return (parsed as Project[]).map((p) => {
+    const result = (parsed as Project[]).map((p) => {
       const settings: Project['settings'] = {
         theme: 'light',
         showSceneNumbers: true,
         autoDetectElements: true,
-        fontFamily: 'serif',
+        fontFamily: 'courier-prime',
         fontSizePt: 12,
         ...((p.settings ?? {}) as Partial<Project['settings']>),
       }
-      if (migrate && settings.fontFamily === 'courier-prime') settings.fontFamily = 'serif'
+      if (migrate && settings.fontFamily === 'serif') settings.fontFamily = 'courier-prime'
       return { ...p, settings }
     })
+    if (migrate) {
+      try {
+        localStorage.setItem(KEY, JSON.stringify(result)) // keep the switch even without an edit
+      } catch {
+        /* storage unavailable */
+      }
+    }
+    return result
   } catch {
     return []
   }
