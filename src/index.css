@@ -337,3 +337,28 @@ mark.sp-highlight {
   color: #2a2521;
   text-shadow: 0 0 0.45px rgb(42 37 33 / 0.55);
 }
+
+/* Typewriter canvas: the whole area becomes the machine's desk, with a paper
+   rest behind the page (painted as a fixed background; vars set by the deck). */
+.tw-canvas {
+  --tw-desk: #ede7de;
+  --tw-rest: #e0d8cb;
+  background-color: var(--tw-desk);
+  background-image:
+    radial-gradient(120% 70% at 50% 0%, rgb(255 255 255 / 0.55), transparent 70%),
+    linear-gradient(var(--tw-rest), var(--tw-rest));
+  background-repeat: no-repeat;
+  background-size:
+    100% 100%,
+    var(--tw-rest-w, 0px) var(--tw-rest-h, 0px);
+  background-position:
+    0 0,
+    var(--tw-rest-x, 50%) var(--tw-rest-y, 0px);
+}
+.dark .tw-canvas {
+  --tw-desk: #131416;
+  --tw-rest: #1d1e22;
+  background-image:
+    radial-gradient(120% 70% at 50% 0%, rgb(255 255 255 / 0.03), transparent 70%),
+    linear-gradient(var(--tw-rest), var(--tw-rest));
+}

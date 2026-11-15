@@ -383,26 +383,36 @@ export function Editor() {
         <main
           className={cn(
             'relative min-w-0 flex-1 overflow-auto rounded-xl border border-ink-200/70 bg-white dark:border-ink-800 dark:bg-ink-900',
-            typewriter && 'tw-canvas',
+            typewriter && 'tw-canvas overflow-x-hidden',
           )}
         >
           <div
+            data-tw-frame
             className={cn(
               'mx-auto w-fit max-w-full px-4 sm:px-6',
               // Typewriter: room below so the last line can reach the print line.
               typewriter ? 'pb-[45vh] pt-[var(--tw-top,2rem)]' : 'py-8',
             )}
           >
-            <Paper
-              elements={elements}
-              selectedId={focus.kind === 'element' ? focus.id : null}
-              readOnly={searchOpen}
-              query={query}
-              matches={matches}
-              activeMatch={clampedMatch}
-              onSelect={(id) => setFocus({ kind: 'element', id })}
-              scrollToId={scrollToId}
-            />
+            {/* Typewriter: the page rides the carriage, sliding as you type. */}
+            <div
+              style={
+                typewriter
+                  ? { transform: 'translateX(var(--tw-shift, 0px))', transition: 'transform 110ms ease-out' }
+                  : undefined
+              }
+            >
+              <Paper
+                elements={elements}
+                selectedId={focus.kind === 'element' ? focus.id : null}
+                readOnly={searchOpen}
+                query={query}
+                matches={matches}
+                activeMatch={clampedMatch}
+                onSelect={(id) => setFocus({ kind: 'element', id })}
+                scrollToId={scrollToId}
+              />
+            </div>
           </div>
           {typewriter && <TypewriterDeck />}
         </main>
