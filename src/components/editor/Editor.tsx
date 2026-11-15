@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, PanelLeftOpen, PanelRightOpen, Plus } from '
 import { useApp } from '../../store/useApp'
 import { countWords, pageCount } from '../../utils/layout'
 import { saveProjects } from '../../utils/storage'
+import { flushSync } from 'react-dom'
 import { TopBar } from './TopBar'
 import { sceneChunks } from '../../utils/scenes'
 import { uid } from '../../utils/id'
@@ -199,15 +200,14 @@ export function Editor() {
 
   const addPage = () => {
     const el = { id: uid('el'), type: 'SCENE_HEADING' as const, text: '' }
-    insertElements(elements.length, [el])
-    setPageIdx(pageChunks.length)
-    setFocus({ kind: 'element', id: el.id })
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        const node = document.querySelector<HTMLElement>(`[data-elid="${el.id}"]`)
-        node?.focus()
-      }),
-    )
+    // Render synchronously so focus lands inside the tap (phones only open
+    // the keyboard for focus that happens during a user gesture).
+    flushSync(() => {
+      insertElements(elements.length, [el])
+      setPageIdx(pageChunks.length)
+      setFocus({ kind: 'element', id: el.id })
+    })
+    document.querySelector<HTMLElement>(`[data-elid="${el.id}"]`)?.focus()
   }
 
   if (!project) {

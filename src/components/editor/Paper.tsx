@@ -1,4 +1,5 @@
-import { useCallback, useRef, useEffect, useState, useMemo } from 'react'
+import { useCallback, useRef, useEffect, useLayoutEffect, useState, useMemo } from 'react'
+import { flushSync } from 'react-dom'
 import type { ScreenplayElement } from '../../types'
 import type { CSSProperties } from 'react'
 import { useApp } from '../../store/useApp'
@@ -7,6 +8,7 @@ import { sceneChunks } from '../../utils/scenes'
 import { ElementBlock } from './ElementBlock'
 import { setCaret } from '../../utils/focus'
 import { uid } from '../../utils/id'
+import { nextTypeAfterEnter } from '../../utils/detect'
 
 interface PaperProps {
   elements: ScreenplayElement[]
@@ -112,55 +114,95 @@ export function Paper({
   }, [elements])
   const indexOf = useMemo(() => new Map(elements.map((el, i) => [el.id, i])), [elements])
 
-  // Clicking blank paper below the last element should let the writer keep
-  // typing. Ensure a trailing empty Action exists and place the caret there.
-  const continueWriting = useCallback(() => {
-    const last = elements[elements.length - 1]
-    const focus = (id: string) =>
-      requestAnimationFrame(() => focusId(id, 'end'))
-    if (!last) {
-      const el: ScreenplayElement = { id: uid('el'), type: 'ACTION', text: '' }
-      insertElements(0, [el])
-      focus(el.id)
-      return
-    }
-    if (last.text === '' && last.type !== 'SCENE_HEADING') {
-      focus(last.id)
-      return
-    }
-    const el: ScreenplayElement = { id: uid('el'), type: 'ACTION', text: '' }
-    insertElements(elements.length, [el])
-    focus(el.id)
-  }, [elements, insertElements, focusId])
+  /*
+   * Tap/click anywhere on the canvas to write there:
+   *  - beside or between lines → caret goes into the nearest line
+   *  - below the last line of a page → a new line starts right there
+   * Listens on the whole scrolling canvas (<main>), not just the text.
+   * The new line is rendered synchronously (flushSync) so focus happens inside
+   * the tap itself — phones only open the keyboard for focus in a user gesture.
+   */
+  const stateRef = useRef({ elements, pages, indexOf, readOnly, pageIndex })
+  useLayoutEffect(() => {
+    stateRef.current = { elements, pages, indexOf, readOnly, pageIndex }
+  })
 
-  // Only clicks in the end-zone (below the last element) start new writing;
-  // clicks on blocks, type tags, or mid-document whitespace are untouched.
-  const handleSheetMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement
-    if (target.closest('[data-elid]')) return
-    if (readOnly) return
-    // Phone single-page view: blank space below a middle page keeps writing on that page.
-    if (pageIndex !== undefined && pageIndex < pages.length - 1) {
-      const pageLast = pages[pageIndex]?.[pages[pageIndex].length - 1]
-      if (pageLast) {
-        e.preventDefault()
-        focusId(pageLast.id, 'end')
+  useEffect(() => {
+    const canvas = wrapRef.current?.closest('main')
+    if (!canvas) return
+
+    const newLineAfter = (after: ScreenplayElement | undefined, at: number) => {
+      if (after && after.text === '' && after.type !== 'SCENE_HEADING') {
+        focusId(after.id, 'end')
+        return
       }
-      return
+      let type = after ? nextTypeAfterEnter(after.type, after.text) : 'ACTION'
+      if (after?.type === 'DIALOGUE') type = 'ACTION'
+      const el: ScreenplayElement = { id: uid('el'), type, text: '' }
+      flushSync(() => insertElements(at, [el]))
+      focusId(el.id, 'end')
     }
-    const lastEl = elements[elements.length - 1]
-    if (!lastEl) {
+
+    const caretAt = (node: HTMLElement, x: number, y: number) => {
+      const r = node.getBoundingClientRect()
+      const cx = Math.min(Math.max(x, r.left + 1), r.right - 1)
+      const cy = Math.min(Math.max(y, r.top + 1), r.bottom - 1)
+      const range = document.caretRangeFromPoint?.(cx, cy)
+      if (range && node.contains(range.startContainer)) {
+        const sel = window.getSelection()
+        sel?.removeAllRanges()
+        sel?.addRange(range)
+        node.focus({ preventScroll: true })
+      } else {
+        setCaret(node, 'end')
+      }
+    }
+
+    const onDown = (e: MouseEvent) => {
+      if (e.button !== 0) return
+      const { elements, pages, indexOf, readOnly, pageIndex } = stateRef.current
+      if (readOnly) return
+      const target = e.target as HTMLElement
+      if (target.closest('[data-elid], button, a, input, textarea, select, [role="menu"], [role="listbox"]')) return
+
+      // Which lines are candidates: the page tapped on (or showing), else all.
+      const sheet = target.closest<HTMLElement>('[data-sheet]')
+      const pi = pageIndex ?? (sheet ? Number(sheet.dataset.sheet) : -1)
+      const pool = pi >= 0 ? (pages[pi] ?? []) : elements
+
       e.preventDefault()
-      continueWriting()
-      return
+      if (pool.length === 0) {
+        newLineAfter(undefined, elements.length)
+        return
+      }
+
+      const last = pool[pool.length - 1]
+      const lastNode = refs.current.get(last.id)
+      if (lastNode && e.clientY > lastNode.getBoundingClientRect().bottom) {
+        newLineAfter(last, (indexOf.get(last.id) ?? elements.length - 1) + 1)
+        return
+      }
+
+      // Nearest line by vertical distance.
+      let best: HTMLElement | null = null
+      let bestD = Infinity
+      for (const el of pool) {
+        const node = refs.current.get(el.id)
+        if (!node) continue
+        const r = node.getBoundingClientRect()
+        const d = e.clientY < r.top ? r.top - e.clientY : e.clientY > r.bottom ? e.clientY - r.bottom : 0
+        if (d < bestD) {
+          bestD = d
+          best = node
+        }
+        if (d === 0) break
+      }
+      if (best) caretAt(best, e.clientX, e.clientY)
     }
-    const node = refs.current.get(lastEl.id)
-    if (!node) return
-    if (e.clientY >= node.getBoundingClientRect().bottom) {
-      e.preventDefault()
-      continueWriting()
-    }
-  }
+
+    canvas.addEventListener('mousedown', onDown)
+    return () => canvas.removeEventListener('mousedown', onDown)
+  }, [focusId, insertElements])
 
   return (
     <div ref={wrapRef} className="flex h-full flex-col">
@@ -174,7 +216,7 @@ export function Paper({
           <div
             key={pi}
             ref={pi === 0 ? sheetRef : undefined}
-            onMouseDown={handleSheetMouseDown}
+            data-sheet={pi}
             style={
               {
                 '--sp-font': docFont,
