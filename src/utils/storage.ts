@@ -34,17 +34,27 @@ export function loadProjects(): Project[] {
     if (!raw) return []
     const parsed = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
-    return (parsed as Project[]).map((p) => ({
-      ...p,
-      settings: {
+    // One-time move to the new default page font (Times serif).
+    const FONT_MIGRATION = 'reel.font.serif.v1'
+    let migrate = false
+    try {
+      migrate = !localStorage.getItem(FONT_MIGRATION)
+      if (migrate) localStorage.setItem(FONT_MIGRATION, '1')
+    } catch {
+      /* storage unavailable */
+    }
+    return (parsed as Project[]).map((p) => {
+      const settings: Project['settings'] = {
         theme: 'light',
         showSceneNumbers: true,
         autoDetectElements: true,
-        fontFamily: 'courier-prime',
+        fontFamily: 'serif',
         fontSizePt: 12,
         ...((p.settings ?? {}) as Partial<Project['settings']>),
-      },
-    }))
+      }
+      if (migrate && settings.fontFamily === 'courier-prime') settings.fontFamily = 'serif'
+      return { ...p, settings }
+    })
   } catch {
     return []
   }

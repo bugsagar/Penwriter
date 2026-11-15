@@ -40,6 +40,7 @@ export function Paper({
   const updateElement = useApp((s) => s.updateElement)
   const insertElements = useApp((s) => s.insertElements)
   const removeElement = useApp((s) => s.removeElement)
+  const typewriter = useApp((s) => s.canvasStyle === 'typewriter') && !compact
   const settings = useApp((s) =>
     s.projects.find((p) => p.id === s.activeProjectId)?.settings,
   )
@@ -103,7 +104,8 @@ export function Paper({
   }, [activeMatch, matches, readOnly, scrollToId])
 
   const autoDetect = settings?.autoDetectElements ?? true
-  const docFont = fontStackFor(settings?.fontFamily)
+  // A typewriter types in Courier — its column scale depends on it.
+  const docFont = fontStackFor(typewriter ? 'courier-prime' : settings?.fontFamily)
   const docSize = settings?.fontSizePt ?? FONT_SIZE_DEFAULT
 
   // One sheet per scene ("page"), so every created page is visible as its
@@ -208,7 +210,11 @@ export function Paper({
     <div ref={wrapRef} className="flex h-full flex-col">
       <div
         className={
-          compact ? 'sp-compact relative w-full' : 'paper-sheen relative mx-auto my-0 w-[8.5in]'
+          compact
+            ? 'sp-compact relative w-full'
+            : typewriter
+              ? 'paper-sheen relative mx-auto my-0 w-[8.5in]'
+              : 'paper-doc relative mx-auto my-0 w-[8.5in]'
         }
         style={compact ? undefined : ({ zoom: fitZoom } as CSSProperties)}
       >
@@ -221,13 +227,15 @@ export function Paper({
               {
                 '--sp-font': docFont,
                 '--sp-size': `${docSize}pt`,
-                marginBottom: pi < pages.length - 1 && pageIndex === undefined ? 14 : 0,
+                marginBottom: pi < pages.length - 1 && pageIndex === undefined ? (typewriter ? 14 : 20) : 0,
               } as CSSProperties
             }
             className={
               compact
                 ? 'pb-6 text-ink-900'
-                : 'min-h-[11in] bg-paper px-[1.5in] pb-[1in] pt-[1in] text-ink-900 shadow-paper dark:bg-[#fdfdfc]'
+                : typewriter
+                  ? 'min-h-[11in] bg-paper px-[1.5in] pb-[1in] pt-[1in] text-ink-900 shadow-paper dark:bg-[#fdfdfc]'
+                  : 'paper-card min-h-[11in] px-[1.5in] pb-[1in] pt-[1in]'
             }
           >
             {pg.map((el) => {

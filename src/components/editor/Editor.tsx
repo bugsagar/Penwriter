@@ -383,7 +383,7 @@ export function Editor() {
         <main
           className={cn(
             'relative min-w-0 flex-1 overflow-auto rounded-xl border border-ink-200/70 bg-white dark:border-ink-800 dark:bg-ink-900',
-            typewriter && 'tw-canvas overflow-x-hidden',
+            typewriter ? 'tw-canvas overflow-x-hidden' : 'paper-canvas',
           )}
         >
           <div

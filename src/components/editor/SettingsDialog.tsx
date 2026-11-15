@@ -86,27 +86,6 @@ export function SettingsDialog({
               </button>
             ))}
           </div>
-          <p className="mt-2 text-[11.5px] text-ink-400 dark:text-ink-500">
-            Typewriter style is inspired by{' '}
-            <a
-              href="https://github.com/mskayyali/platenwriter"
-              target="_blank"
-              rel="noreferrer"
-              className="underline decoration-ink-300 underline-offset-2 hover:text-ink-700 dark:hover:text-ink-200"
-            >
-              Platen
-            </a>{' '}
-            by{' '}
-            <a
-              href="https://x.com/mskayyali"
-              target="_blank"
-              rel="noreferrer"
-              className="underline decoration-ink-300 underline-offset-2 hover:text-ink-700 dark:hover:text-ink-200"
-            >
-              Saleh Kayyali
-            </a>
-            .
-          </p>
         </div>
 
         <div className="space-y-3">

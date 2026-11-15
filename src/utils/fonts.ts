@@ -7,6 +7,7 @@ export interface DocFont {
 }
 
 export const DOC_FONTS: DocFont[] = [
+  { id: 'serif', label: 'Times (Serif)', stack: "'Times New Roman', Times, Tinos, 'Liberation Serif', serif" },
   { id: 'courier-prime', label: 'Courier Prime', stack: "'Courier Prime', 'Courier New', monospace" },
   { id: 'courier-new', label: 'Courier New', stack: "'Courier New', Courier, monospace" },
   { id: 'system-mono', label: 'System Mono', stack: "ui-monospace, Menlo, Consolas, monospace" },

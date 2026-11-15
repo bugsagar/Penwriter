@@ -362,3 +362,42 @@ mark.sp-highlight {
     radial-gradient(120% 70% at 50% 0%, rgb(255 255 255 / 0.03), transparent 70%),
     linear-gradient(var(--tw-rest), var(--tw-rest));
 }
+
+/* Paper canvas: a calm document look — soft grey desk, rounded white page,
+   serif type, lavender highlights. */
+.paper-canvas {
+  background-color: #f5f5f6;
+}
+.dark .paper-canvas {
+  background-color: #111214;
+}
+.paper-card {
+  background: #ffffff;
+  border-radius: 24px;
+  border: 1px solid #ececee;
+  box-shadow:
+    0 1px 2px rgb(16 16 20 / 0.03),
+    0 18px 40px -18px rgb(16 16 20 / 0.1);
+  color: #1d1d21;
+}
+.dark .paper-card {
+  border-color: #26272b;
+  box-shadow: 0 18px 40px -18px rgb(0 0 0 / 0.6);
+}
+.paper-card .sp-block {
+  color: #3a3a40;
+  line-height: 1.35;
+}
+.paper-card .sp-scene-heading,
+.paper-card .sp-character,
+.paper-card .sp-transition {
+  color: #111114;
+}
+.paper-card .sp-block::selection,
+.paper-card .sp-block *::selection {
+  background: #ece2fb;
+}
+.paper-card .el-active {
+  box-shadow: none;
+  background: rgb(155 107 214 / 0.07);
+}

@@ -24,7 +24,7 @@ export interface ScreenplayElement {
 
 export type TextAlign = 'left' | 'center' | 'right' | 'justify'
 
-export type DocFontFamily = 'courier-prime' | 'courier-new' | 'system-mono'
+export type DocFontFamily = 'serif' | 'courier-prime' | 'courier-new' | 'system-mono'
 
 export interface Character {
   id: string

@@ -21,7 +21,7 @@ export function emptyProject(): Project {
       theme: 'light',
       showSceneNumbers: true,
       autoDetectElements: true,
-      fontFamily: 'courier-prime',
+      fontFamily: 'serif',
       fontSizePt: 12,
     },
   }
