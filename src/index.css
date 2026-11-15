@@ -331,3 +331,9 @@ mark.sp-highlight {
     touch-action: manipulation;
   }
 }
+
+/* Typewriter canvas: a touch of ribbon ink on the page. */
+.tw-canvas .sp-block {
+  color: #2a2521;
+  text-shadow: 0 0 0.45px rgb(42 37 33 / 0.55);
+}

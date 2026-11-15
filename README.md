@@ -84,3 +84,11 @@ src/
 ├── utils/              detection, pagination, scenes, storage
 └── types.ts            data model
 ```
+
+## Credits
+
+- **Typewriter canvas** — the desktop "Typewriter" canvas (paper fed over a
+  platen roller, with a carriage scale and the typing line held at the print
+  line) is inspired by [Platen](https://github.com/mskayyali/platenwriter), a
+  thermal typewriter by [Saleh Kayyali](https://x.com/mskayyali), MIT licensed.
+  Pen's version is redrawn in its own theme; no code from Platen is included.

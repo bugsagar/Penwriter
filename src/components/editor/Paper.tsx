@@ -163,7 +163,7 @@ export function Paper({
       const { elements, pages, indexOf, readOnly, pageIndex } = stateRef.current
       if (readOnly) return
       const target = e.target as HTMLElement
-      if (target.closest('[data-elid], button, a, input, textarea, select, [role="menu"], [role="listbox"]')) return
+      if (target.closest('[data-elid], [data-typewriter-deck], button, a, input, textarea, select, [role="menu"], [role="listbox"]')) return
 
       // Which lines are candidates: the page tapped on (or showing), else all.
       const sheet = target.closest<HTMLElement>('[data-sheet]')

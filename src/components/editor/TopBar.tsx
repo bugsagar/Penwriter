@@ -4,6 +4,7 @@ import {
   ChevronDown,
   FileText,
   Files,
+  Keyboard,
   MoreHorizontal,
   Minimize2,
   Moon,
@@ -111,6 +112,8 @@ export function TopBar({
   const theme = useApp((s) => s.theme)
   const setTheme = useApp((s) => s.setTheme)
   const updateActive = useApp((s) => s.updateActive)
+  const canvasStyle = useApp((s) => s.canvasStyle)
+  const setCanvasStyle = useApp((s) => s.setCanvasStyle)
 
   const doExport = async (kind: 'pdf' | 'text' | 'fountain') => {
     try {
@@ -285,6 +288,14 @@ export function TopBar({
         <div className="flex-1" />
 
         <div className="flex items-center gap-0.5">
+          <IconButton
+            title={canvasStyle === 'typewriter' ? 'Switch to paper canvas' : 'Switch to typewriter canvas'}
+            onClick={() => setCanvasStyle(canvasStyle === 'typewriter' ? 'paper' : 'typewriter')}
+            active={canvasStyle === 'typewriter'}
+            className="h-8 w-8"
+          >
+            <Keyboard size={15} />
+          </IconButton>
           <IconButton title="Search (⌘F)" onClick={onToggleSearch} className="h-8 w-8">
             <Search size={15} />
           </IconButton>

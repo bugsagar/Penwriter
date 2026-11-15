@@ -13,6 +13,8 @@ import { Paper } from './Paper'
 import { SearchBar } from './SearchBar'
 import { SettingsDialog } from './SettingsDialog'
 import { MobileTypeBar } from './MobileTypeBar'
+import { TypewriterDeck } from './Typewriter'
+import { cn } from '../ui'
 import { useIsMobile } from '../../hooks/useIsMobile'
 
 export function Editor() {
@@ -33,6 +35,7 @@ export function Editor() {
   const [activeMatch, setActiveMatch] = useState(0)
   const [pagesOpen, setPagesOpen] = useState(false)
   const isMobile = useIsMobile()
+  const typewriter = useApp((s) => s.canvasStyle) === 'typewriter'
   const [pageIdx, setPageIdx] = useState(0)
   const insertElements = useApp((s) => s.insertElements)
 
@@ -377,8 +380,19 @@ export function Editor() {
             />
           ))}
 
-        <main className="relative min-w-0 flex-1 overflow-auto rounded-xl border border-ink-200/70 bg-white dark:border-ink-800 dark:bg-ink-900">
-          <div className="mx-auto w-fit max-w-full px-4 py-8 sm:px-6">
+        <main
+          className={cn(
+            'relative min-w-0 flex-1 overflow-auto rounded-xl border border-ink-200/70 bg-white dark:border-ink-800 dark:bg-ink-900',
+            typewriter && 'tw-canvas',
+          )}
+        >
+          <div
+            className={cn(
+              'mx-auto w-fit max-w-full px-4 sm:px-6',
+              // Typewriter: room below so the last line can reach the print line.
+              typewriter ? 'pb-[45vh] pt-[var(--tw-top,2rem)]' : 'py-8',
+            )}
+          >
             <Paper
               elements={elements}
               selectedId={focus.kind === 'element' ? focus.id : null}
@@ -390,6 +404,7 @@ export function Editor() {
               scrollToId={scrollToId}
             />
           </div>
+          {typewriter && <TypewriterDeck />}
         </main>
 
         {!writingMode &&

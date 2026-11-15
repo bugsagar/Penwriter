@@ -3,6 +3,25 @@ import type { Project } from '../types'
 const KEY = 'reel.projects.v1'
 const THEME_KEY = 'reel.theme'
 const SESSION_KEY = 'reel.session'
+const CANVAS_KEY = 'reel.canvas'
+
+export type CanvasStyle = 'paper' | 'typewriter'
+
+export function loadCanvasStyle(): CanvasStyle {
+  try {
+    return localStorage.getItem(CANVAS_KEY) === 'typewriter' ? 'typewriter' : 'paper'
+  } catch {
+    return 'paper'
+  }
+}
+
+export function saveCanvasStyle(style: CanvasStyle): void {
+  try {
+    localStorage.setItem(CANVAS_KEY, style)
+  } catch {
+    /* storage unavailable */
+  }
+}
 
 export interface Session {
   view: 'home' | 'dashboard' | 'editor'

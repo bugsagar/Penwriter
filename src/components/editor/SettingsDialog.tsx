@@ -1,4 +1,4 @@
-import { Maximize2 } from 'lucide-react'
+import { Maximize2, FileText, Keyboard } from 'lucide-react'
 import { useApp } from '../../store/useApp'
 import { Modal, Button } from '../ui'
 
@@ -15,6 +15,8 @@ export function SettingsDialog({
   const setProjectSettings = useApp((s) => s.setProjectSettings)
   const theme = useApp((s) => s.theme)
   const setTheme = useApp((s) => s.setTheme)
+  const canvasStyle = useApp((s) => s.canvasStyle)
+  const setCanvasStyle = useApp((s) => s.setCanvasStyle)
 
   const settings = project?.settings
 
@@ -52,6 +54,58 @@ export function SettingsDialog({
           </div>
           <p className="mt-2 text-[11.5px] text-ink-400 dark:text-ink-500">
             The screenplay page stays paper-white in both modes.
+          </p>
+        </div>
+
+        {/* Canvas look — desktop only (phones always use the plain page). */}
+        <div className="hidden md:block">
+          <h3 className="mb-2 text-[12px] font-semibold text-ink-800 dark:text-ink-100">Canvas</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {(
+              [
+                { value: 'paper', label: 'Paper', hint: 'A clean page', icon: <FileText size={15} /> },
+                { value: 'typewriter', label: 'Typewriter', hint: 'Paper fed through a machine', icon: <Keyboard size={15} /> },
+              ] as const
+            ).map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                aria-pressed={canvasStyle === o.value}
+                onClick={() => setCanvasStyle(o.value)}
+                className={`flex items-start gap-2.5 rounded-lg border px-3 py-2 text-left transition-colors ${
+                  canvasStyle === o.value
+                    ? 'border-brass-400 bg-brass-300/15 text-ink-900 dark:bg-brass-300/10 dark:text-ink-50'
+                    : 'border-ink-200 text-ink-500 hover:border-ink-300 dark:border-ink-700 dark:text-ink-400'
+                }`}
+              >
+                <span className="mt-0.5">{o.icon}</span>
+                <span>
+                  <span className="block text-[13px] font-medium">{o.label}</span>
+                  <span className="block text-[11px] opacity-70">{o.hint}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-[11.5px] text-ink-400 dark:text-ink-500">
+            Typewriter style is inspired by{' '}
+            <a
+              href="https://github.com/mskayyali/platenwriter"
+              target="_blank"
+              rel="noreferrer"
+              className="underline decoration-ink-300 underline-offset-2 hover:text-ink-700 dark:hover:text-ink-200"
+            >
+              Platen
+            </a>{' '}
+            by{' '}
+            <a
+              href="https://x.com/mskayyali"
+              target="_blank"
+              rel="noreferrer"
+              className="underline decoration-ink-300 underline-offset-2 hover:text-ink-700 dark:hover:text-ink-200"
+            >
+              Saleh Kayyali
+            </a>
+            .
           </p>
         </div>
 

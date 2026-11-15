@@ -1,6 +1,15 @@
 import { create } from 'zustand'
 import type { Character, FolderInfo, Project, ProjectType, SaveStatus, ScreenplayElement } from '../types'
-import { loadProjects, loadTheme, loadSession, saveTheme, saveSession } from '../utils/storage'
+import {
+  loadProjects,
+  loadTheme,
+  loadSession,
+  saveTheme,
+  saveSession,
+  loadCanvasStyle,
+  saveCanvasStyle,
+  type CanvasStyle,
+} from '../utils/storage'
 import { normalizeElements } from '../utils/scenes'
 import { emptyProject, sampleProject } from '../utils/sample'
 import { uid } from '../utils/id'
@@ -23,6 +32,8 @@ interface AppStore {
   view: 'home' | 'dashboard' | 'editor'
   saveStatus: SaveStatus
   theme: 'light' | 'dark'
+  /** Desktop canvas look: plain paper, or paper fed through a typewriter. */
+  canvasStyle: CanvasStyle
   undoStack: HistoryEntry[]
   redoStack: HistoryEntry[]
   saveFolder: FolderInfo
@@ -54,6 +65,7 @@ interface AppStore {
   redo: () => void
   markSaved: () => void
   setTheme: (theme: 'light' | 'dark') => void
+  setCanvasStyle: (style: CanvasStyle) => void
 }
 
 function touch(project: Project): Project {
@@ -98,6 +110,7 @@ export const useApp = create<AppStore>((set, get) => {
     view: canRestore ? 'editor' : 'home',
     saveStatus: 'saved',
     theme: loadTheme(),
+    canvasStyle: loadCanvasStyle(),
     undoStack: [],
     redoStack: [],
     saveFolder: { path: null, name: null },
@@ -326,6 +339,11 @@ export const useApp = create<AppStore>((set, get) => {
   setTheme: (theme) => {
     saveTheme(theme)
     set({ theme })
+  },
+
+  setCanvasStyle: (canvasStyle) => {
+    saveCanvasStyle(canvasStyle)
+    set({ canvasStyle })
   },
   }
 })
