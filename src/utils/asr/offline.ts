@@ -124,6 +124,7 @@ export async function startOffline(opts: {
   let inSpeech = false
   let busy = false
   let lastPartial = 0
+  let partialText = '' // latest live text for the phrase in progress
   let stopped = false
   let chain = Promise.resolve()
 
@@ -140,15 +141,20 @@ export async function startOffline(opts: {
 
   const commit = (parts: Float32Array[]) => {
     const audio = join(parts)
+    // If the final pass fails or comes back empty, keep what the user already saw.
+    const fallback = partialText
+    partialText = ''
     // finals run in order, after any partial in flight
     chain = chain.then(async () => {
+      let text = ''
       try {
-        const text = await transcribe(audio)
-        opts.onInterim('')
-        if (text) opts.onFinal(text)
+        text = await transcribe(audio)
       } catch {
-        opts.onInterim('')
+        /* use the live text */
       }
+      text = text || fallback
+      opts.onInterim('')
+      if (text) opts.onFinal(text)
     })
   }
 
@@ -158,7 +164,10 @@ export async function startOffline(opts: {
     lastPartial = performance.now()
     transcribe(join(seg))
       .then((t) => {
-        if (!stopped && inSpeech) opts.onInterim(t)
+        if (!stopped && inSpeech && t) {
+          partialText = t
+          opts.onInterim(t)
+        }
       })
       .catch(() => {})
       .finally(() => {
@@ -184,6 +193,7 @@ export async function startOffline(opts: {
         seg = [...pre]
         pre = []
         quiet = 0
+        partialText = ''
       }
       return
     }

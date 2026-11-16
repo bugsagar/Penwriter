@@ -77,13 +77,19 @@ function PanelBody({ voice }: { voice: VoiceTyping }) {
             ) : (
               <>
                 <p className="text-[13.5px] font-semibold">
-                  {offline ? "You're offline" : 'Voice typing offline'}
+                  {offline
+                    ? "You're offline"
+                    : voice.needReason === 'unsupported'
+                      ? 'This browser has no Malayalam voice typing'
+                      : 'Voice typing on this device'}
                 </p>
                 <p className="mt-0.5 text-[12.5px] leading-snug text-ink-500 dark:text-ink-400">
                   {voice.error ??
                     (offline
                       ? `Voice typing needs internet, or the offline Malayalam model. Connect once to download it (${MODEL_MB} MB).`
-                      : `Download the Malayalam voice model once (${MODEL_MB} MB) to type by voice without internet. It stays on this device.`)}
+                      : voice.needReason === 'unsupported'
+                        ? `Download the Malayalam voice model once (${MODEL_MB} MB) and it runs right on this phone, even without internet. (Chrome on Android and computers can also type by voice without it.)`
+                        : `Download the Malayalam voice model once (${MODEL_MB} MB) to type by voice without internet. It stays on this device.`)}
                 </p>
                 <div className="mt-2.5 flex gap-2">
                   <button

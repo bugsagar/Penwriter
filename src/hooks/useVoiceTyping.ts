@@ -58,6 +58,8 @@ export function useVoiceTyping(onFinal: (text: string) => void) {
   const [error, setError] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
   const [modelReady, setModelReady] = useState(false)
+  // Why the offline model is being asked for (shown in the prompt).
+  const [needReason, setNeedReason] = useState<'offline' | 'unsupported' | 'chosen'>('offline')
   const [level, setLevel] = useState(0)
 
   const onFinalRef = useRef(onFinal)
@@ -147,6 +149,7 @@ export function useVoiceTyping(onFinal: (text: string) => void) {
     r.onerror = (e) => {
       if (e.error === 'no-speech' || e.error === 'aborted') return
       if (e.error === 'network' || e.error === 'service-not-allowed' || e.error === 'language-not-supported') {
+        setNeedReason(e.error === 'network' ? 'offline' : 'unsupported')
         // Can't reach the online recogniser: fall back to the on-device model.
         rec.current = null
         r.onend = null
@@ -187,6 +190,7 @@ export function useVoiceTyping(onFinal: (text: string) => void) {
       setError(null)
       setInterim('')
       const online = navigator.onLine && onlineSupported && (!offOnly || l === 'en')
+      setNeedReason(!navigator.onLine ? 'offline' : !onlineSupported ? 'unsupported' : 'chosen')
       if (online) startOnlineEngine(l)
       else await startOfflineEngine(l)
     },
@@ -275,6 +279,7 @@ export function useVoiceTyping(onFinal: (text: string) => void) {
     error,
     progress,
     modelReady,
+    needReason,
     level,
     onlineSupported,
     start,

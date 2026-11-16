@@ -45,6 +45,10 @@ export function Editor() {
   // Voice typing: dictated text goes in at the caret, or onto the end of the
   // selected line, or into a new action line.
   const focusRef = useRef(focus)
+  // Phone shows one page at a time: dictation with no line selected must land
+  // on the page in view, not at the end of the script.
+  const pageEndRef = useRef<string | null>(null)
+  const pageIdsRef = useRef<Set<string> | null>(null) // lines on the phone page in view
   useEffect(() => {
     focusRef.current = focus
   })
@@ -65,14 +69,33 @@ export function Editor() {
       const proj = useApp.getState().projects.find((p) => p.id === useApp.getState().activeProjectId)
       if (!proj) return
       const f = focusRef.current
-      const el = f.kind === 'element' ? proj.elements.find((e) => e.id === f.id) : undefined
+      const onPage = (id: string) => !pageIdsRef.current || pageIdsRef.current.has(id)
+      const el = f.kind === 'element' && onPage(f.id) ? proj.elements.find((e) => e.id === f.id) : undefined
+      let targetId: string
       if (el) {
         updateElement(el.id, { text: el.text.trim() ? `${el.text.replace(/\s+$/, '')} ${text}` : text })
+        targetId = el.id
       } else {
+        const after = pageEndRef.current ? proj.elements.findIndex((e) => e.id === pageEndRef.current) : -1
+        const end = after >= 0 ? proj.elements[after] : proj.elements[proj.elements.length - 1]
+        if (end && !end.text.trim() && end.type !== 'SCENE_HEADING') {
+          // reuse an empty line at the end of the page
+          updateElement(end.id, { text })
+          setFocus({ kind: 'element', id: end.id })
+          requestAnimationFrame(() =>
+            document.querySelector(`[data-elid="${end.id}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }),
+          )
+          return
+        }
         const fresh = { id: uid('el'), type: 'ACTION' as const, text }
-        insertElements(proj.elements.length, [fresh])
+        insertElements(after >= 0 ? after + 1 : proj.elements.length, [fresh])
         setFocus({ kind: 'element', id: fresh.id })
+        targetId = fresh.id
       }
+      // Show where the words went.
+      requestAnimationFrame(() =>
+        document.querySelector(`[data-elid="${targetId}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }),
+      )
     },
     [insertElements, updateElement],
   )
@@ -222,6 +245,11 @@ export function Editor() {
   const pageChunks = useMemo(() => sceneChunks(elements), [elements])
   const pageTotal = Math.max(1, pageChunks.length)
   const curPage = Math.min(pageIdx, pageTotal - 1)
+  useEffect(() => {
+    const chunk = isMobile ? pageChunks[curPage] : undefined
+    pageEndRef.current = chunk?.length ? chunk[chunk.length - 1].id : null
+    pageIdsRef.current = chunk ? new Set(chunk.map((e) => e.id)) : null
+  }, [isMobile, pageChunks, curPage])
   const pageOf = useCallback(
     (id: string) => pageChunks.findIndex((c) => c.some((el) => el.id === id)),
     [pageChunks],
