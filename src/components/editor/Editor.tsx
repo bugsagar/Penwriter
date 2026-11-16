@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, PanelLeftOpen, PanelRightOpen, Plus } from 'lucide-react'
 import { useApp } from '../../store/useApp'
 import { countWords, pageCount } from '../../utils/layout'
@@ -16,6 +16,8 @@ import { MobileTypeBar } from './MobileTypeBar'
 import { TypewriterDeck } from './Typewriter'
 import { cn } from '../ui'
 import { useIsMobile } from '../../hooks/useIsMobile'
+import { useVoiceTyping } from '../../hooks/useVoiceTyping'
+import { MicButton, VoicePanel } from './VoiceTyping'
 
 export function Editor() {
   const project = useApp((s) => s.projects.find((p) => p.id === s.activeProjectId))
@@ -38,6 +40,43 @@ export function Editor() {
   const typewriter = useApp((s) => s.canvasStyle) === 'typewriter'
   const [pageIdx, setPageIdx] = useState(0)
   const insertElements = useApp((s) => s.insertElements)
+  const updateElement = useApp((s) => s.updateElement)
+
+  // Voice typing: dictated text goes in at the caret, or onto the end of the
+  // selected line, or into a new action line.
+  const focusRef = useRef(focus)
+  useEffect(() => {
+    focusRef.current = focus
+  })
+  const insertDictation = useCallback(
+    (text: string) => {
+      const active = document.activeElement as HTMLElement | null
+      const line = active?.closest?.('[data-elid]') as HTMLElement | null
+      const sel = window.getSelection()
+      if (line && sel && sel.rangeCount) {
+        const caret = sel.getRangeAt(0)
+        const before = document.createRange()
+        before.selectNodeContents(line)
+        before.setEnd(caret.startContainer, caret.startOffset)
+        const sep = before.toString() && !/\s$/.test(before.toString()) ? ' ' : ''
+        document.execCommand('insertText', false, sep + text)
+        return
+      }
+      const proj = useApp.getState().projects.find((p) => p.id === useApp.getState().activeProjectId)
+      if (!proj) return
+      const f = focusRef.current
+      const el = f.kind === 'element' ? proj.elements.find((e) => e.id === f.id) : undefined
+      if (el) {
+        updateElement(el.id, { text: el.text.trim() ? `${el.text.replace(/\s+$/, '')} ${text}` : text })
+      } else {
+        const fresh = { id: uid('el'), type: 'ACTION' as const, text }
+        insertElements(proj.elements.length, [fresh])
+        setFocus({ kind: 'element', id: fresh.id })
+      }
+    },
+    [insertElements, updateElement],
+  )
+  const voice = useVoiceTyping(insertDictation)
 
   const elements = project?.elements ?? []
 
@@ -259,6 +298,11 @@ export function Editor() {
 
         {!searchOpen && (
           <div className="pb-safe shrink-0 bg-white px-3 pt-1 dark:bg-ink-950">
+            {voice.status !== 'idle' && (
+              <div className="mb-2">
+                <VoicePanel voice={voice} />
+              </div>
+            )}
             {selectedId && <MobileTypeBar selectedId={selectedId} />}
             <div className={selectedId ? "mt-2 flex items-center justify-between gap-2" : "flex items-center justify-between gap-2"}>
               <div className="flex items-center rounded-full border border-ink-200/80 bg-white p-0.5 shadow-[0_1px_3px_rgb(20_22_26/0.08)] dark:border-ink-700 dark:bg-ink-900">
@@ -288,6 +332,8 @@ export function Editor() {
                   <ChevronRight size={20} />
                 </button>
               </div>
+              <div className="flex items-center gap-2">
+              <MicButton voice={voice} className="h-11 w-11" />
               <button
                 type="button"
                 onClick={addPage}
@@ -296,6 +342,7 @@ export function Editor() {
                 <Plus size={17} />
                 New page
               </button>
+              </div>
             </div>
           </div>
         )}
@@ -356,6 +403,7 @@ export function Editor() {
         writingMode={writingMode}
         onToggleSearch={toggleSearch}
         onToggleWritingMode={() => setWritingMode((w) => !w)}
+        tools={<MicButton voice={voice} className="mr-1 h-8 w-8 [&_svg]:h-[15px] [&_svg]:w-[15px]" />}
         onOpenSettings={() => setSettingsOpen(true)}
         onGoHome={goHome}
       />
@@ -447,6 +495,8 @@ export function Editor() {
           <span>~{stats.pages} min of screen time</span>
         </footer>
       )}
+
+      <VoicePanel voice={voice} floating />
 
       {searchOpen && (
         <SearchBar

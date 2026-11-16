@@ -59,6 +59,8 @@ interface Props {
   /** Phone layout: one simple row with an overflow menu. */
   compact?: boolean
   onOpenPages?: () => void
+  /** Extra buttons for the desktop toolbar (e.g. voice typing). */
+  tools?: React.ReactNode
 }
 
 const pill =
@@ -104,6 +106,7 @@ export function TopBar({
   onGoHome,
   compact = false,
   onOpenPages,
+  tools,
 }: Props) {
   const undo = useApp((s) => s.undo)
   const redo = useApp((s) => s.redo)
@@ -288,6 +291,7 @@ export function TopBar({
         <div className="flex-1" />
 
         <div className="flex items-center gap-0.5">
+          {tools}
           <IconButton
             title={canvasStyle === 'typewriter' ? 'Switch to paper canvas' : 'Switch to typewriter canvas'}
             onClick={() => setCanvasStyle(canvasStyle === 'typewriter' ? 'paper' : 'typewriter')}

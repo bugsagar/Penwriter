@@ -1,6 +1,6 @@
 // Pen service worker: makes the app installable and usable offline.
 // Pages are network-first (so updates show up), built assets cache-first.
-const CACHE = 'pen-v1'
+const CACHE = 'pen-v2'
 const SHELL = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/fav.png']
 
 self.addEventListener('install', (e) => {
@@ -12,7 +12,8 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      // only old app-shell caches; the offline voice model (pen-asr-*) stays
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('pen-v') && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   )
 })
