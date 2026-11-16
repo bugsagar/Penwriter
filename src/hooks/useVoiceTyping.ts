@@ -70,6 +70,18 @@ export function useVoiceTyping(onFinal: (text: string) => void) {
   const off = useRef<OfflineSession | null>(null)
   const wanted = useRef(false) // user still wants to listen (online recogniser auto-restarts)
   const abortDl = useRef<AbortController | null>(null)
+  // Hold-to-talk keeps finished phrases here until release, so sliding to
+  // cancel can throw the whole thing away. Tap mode types as it goes (null).
+  const buffer = useRef<string[] | null>(null)
+  const emit = useCallback((text: string) => {
+    if (buffer.current) buffer.current.push(text)
+    else onFinalRef.current(text)
+  }, [])
+  const flush = useCallback(() => {
+    const b = buffer.current
+    buffer.current = null
+    if (b?.length) onFinalRef.current(b.join(' '))
+  }, [])
 
   useEffect(() => {
     isModelDownloaded().then(setModelReady)
@@ -77,26 +89,50 @@ export function useVoiceTyping(onFinal: (text: string) => void) {
 
   const onlineSupported = typeof window !== 'undefined' && !!SRClass()
 
-  const stopAll = useCallback(async () => {
-    wanted.current = false
-    if (rec.current) {
-      const r = rec.current
-      rec.current = null
-      r.onend = null
-      try {
-        r.stop()
-      } catch {
-        /* already stopped */
+  const stopAll = useCallback(
+    async (discard = false) => {
+      wanted.current = false
+      if (rec.current) {
+        const r = rec.current
+        rec.current = null
+        if (discard) {
+          r.onresult = null
+          r.onend = null
+          buffer.current = null
+          try {
+            r.abort()
+          } catch {
+            /* already stopped */
+          }
+        } else {
+          // The last phrase arrives after stop(); hand over what's held once it has.
+          let done = false
+          const finish = () => {
+            if (done) return
+            done = true
+            flush()
+          }
+          r.onend = finish
+          window.setTimeout(finish, 2500)
+          try {
+            r.stop()
+          } catch {
+            finish()
+          }
+        }
       }
-    }
-    if (off.current) {
-      const s = off.current
-      off.current = null
-      await s.stop()
-    }
-    setInterim('')
-    setLevel(0)
-  }, [])
+      if (off.current) {
+        const s = off.current
+        off.current = null
+        await s.stop(discard)
+        if (discard) buffer.current = null
+        else flush()
+      }
+      setInterim('')
+      setLevel(0)
+    },
+    [flush],
+  )
 
   const startOfflineEngine = useCallback(async (l: VoiceLang) => {
     if (l === 'en') {
@@ -115,7 +151,7 @@ export function useVoiceTyping(onFinal: (text: string) => void) {
       const { startOffline } = await import('../utils/asr/offline')
       off.current = await startOffline({
         onInterim: setInterim,
-        onFinal: (t) => onFinalRef.current(t),
+        onFinal: emit,
         onLevel: (r) => setLevel(Math.min(1, r * 12)),
       })
       wanted.current = true
@@ -125,7 +161,7 @@ export function useVoiceTyping(onFinal: (text: string) => void) {
       setError(micError(err))
       setStatus('error')
     }
-  }, [])
+  }, [emit])
 
   const startOnlineEngine = useCallback((l: VoiceLang) => {
     const C = SRClass()!
@@ -141,7 +177,7 @@ export function useVoiceTyping(onFinal: (text: string) => void) {
         const text = res[0]?.transcript ?? ''
         if (res.isFinal) {
           const t = text.trim()
-          if (t) onFinalRef.current(t)
+          if (t) emit(t)
         } else live += text
       }
       setInterim(live.trim())
@@ -181,12 +217,13 @@ export function useVoiceTyping(onFinal: (text: string) => void) {
       setError(micError(err))
       setStatus('error')
     }
-  }, [startOfflineEngine])
+  }, [startOfflineEngine, emit])
 
   const start = useCallback(
-    async (o?: { lang?: VoiceLang; offline?: boolean }) => {
+    async (o?: { lang?: VoiceLang; offline?: boolean; hold?: boolean }) => {
       const l = o?.lang ?? lang
       const offOnly = o?.offline ?? offlineOnly
+      buffer.current = o?.hold ? [] : null
       setError(null)
       setInterim('')
       const online = navigator.onLine && onlineSupported && (!offOnly || l === 'en')
@@ -199,6 +236,15 @@ export function useVoiceTyping(onFinal: (text: string) => void) {
 
   const stop = useCallback(async () => {
     await stopAll()
+    setStatus('idle')
+  }, [stopAll])
+
+  /** Hold became hands-free: type what's held, and type as it goes from now on. */
+  const release = useCallback(() => flush(), [flush])
+
+  /** Stop and throw away what hasn't been typed yet. */
+  const cancel = useCallback(async () => {
+    await stopAll(true)
     setStatus('idle')
   }, [stopAll])
 
@@ -284,6 +330,8 @@ export function useVoiceTyping(onFinal: (text: string) => void) {
     onlineSupported,
     start,
     stop,
+    cancel,
+    release,
     toggle,
     download,
     cancelDownload,

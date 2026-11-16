@@ -18,6 +18,7 @@ import { cn } from '../ui'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { useVoiceTyping } from '../../hooks/useVoiceTyping'
 import { MicButton, VoicePanel } from './VoiceTyping'
+import { VoiceNote } from './VoiceNote'
 
 export function Editor() {
   const project = useApp((s) => s.projects.find((p) => p.id === s.activeProjectId))
@@ -293,8 +294,9 @@ export function Editor() {
 
   if (isMobile) {
     const selectedId = focus.kind === 'element' ? focus.id : null
+    const voiceOn = voice.status === 'listening' || voice.status === 'starting'
     const navBtn =
-      'flex h-10 w-10 items-center justify-center rounded-full text-ink-700 transition-colors active:bg-ink-100 disabled:opacity-30 dark:text-ink-200 dark:active:bg-ink-800'
+      'flex h-10 w-8 items-center justify-center rounded-full text-ink-700 transition-colors active:bg-ink-100 disabled:opacity-30 dark:text-ink-200 dark:active:bg-ink-800'
     return (
       <div className="flex h-dvh flex-col bg-white dark:bg-ink-950">
         <TopBar
@@ -327,49 +329,62 @@ export function Editor() {
         {!searchOpen && (
           <div className="pb-safe shrink-0 bg-white px-3 pt-1 dark:bg-ink-950">
             {voice.status !== 'idle' && (
-              <div className="mb-2">
-                <VoicePanel voice={voice} />
+              // listening leaves room under the bubble for the pill's "Slide to cancel" hint
+              <div className={voiceOn ? 'mb-8' : 'mb-2'}>
+                <VoicePanel voice={voice} compact />
               </div>
             )}
-            {selectedId && <MobileTypeBar selectedId={selectedId} />}
-            <div className={selectedId ? "mt-2 flex items-center justify-between gap-2" : "flex items-center justify-between gap-2"}>
-              <div className="flex items-center rounded-full border border-ink-200/80 bg-white p-0.5 shadow-[0_1px_3px_rgb(20_22_26/0.08)] dark:border-ink-700 dark:bg-ink-900">
-                <button
-                  type="button"
-                  aria-label="Previous page"
-                  disabled={curPage === 0}
-                  onClick={() => goToPage(curPage - 1)}
-                  className={navBtn}
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPagesOpen(true)}
-                  className="min-w-[76px] px-1 text-center text-[13.5px] font-semibold tabular-nums text-ink-800 dark:text-ink-100"
-                >
-                  {curPage + 1} / {pageTotal}
-                </button>
-                <button
-                  type="button"
-                  aria-label="Next page"
-                  disabled={curPage >= pageTotal - 1}
-                  onClick={() => goToPage(curPage + 1)}
-                  className={navBtn}
-                >
-                  <ChevronRight size={20} />
-                </button>
+            {selectedId && !voiceOn && <MobileTypeBar selectedId={selectedId} />}
+            <div
+              className={cn('vn-row', selectedId && !voiceOn && 'mt-2')}
+              data-open={voiceOn || undefined}
+            >
+              {/* pages: small, on the left */}
+              <div className="vn-side">
+                <div className="flex h-11 items-center rounded-full border border-ink-200/80 bg-white shadow-[0_1px_3px_rgb(20_22_26/0.08)] dark:border-ink-700 dark:bg-ink-900">
+                  <button
+                    type="button"
+                    aria-label="Previous page"
+                    disabled={curPage === 0}
+                    onClick={() => goToPage(curPage - 1)}
+                    className={navBtn}
+                  >
+                    <ChevronLeft size={17} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPagesOpen(true)}
+                    aria-label={`Page ${curPage + 1} of ${pageTotal}. Show pages`}
+                    className="min-w-[30px] text-center text-[12.5px] font-semibold tabular-nums text-ink-700 dark:text-ink-200"
+                  >
+                    {curPage + 1}/{pageTotal}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Next page"
+                    disabled={curPage >= pageTotal - 1}
+                    onClick={() => goToPage(curPage + 1)}
+                    className={navBtn}
+                  >
+                    <ChevronRight size={17} />
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-              <MicButton voice={voice} className="h-11 w-11" />
-              <button
-                type="button"
-                onClick={addPage}
-                className="flex h-11 items-center gap-1.5 rounded-full border border-ink-200/80 bg-white px-4 text-[13.5px] font-medium text-ink-800 shadow-[0_1px_3px_rgb(20_22_26/0.08)] active:bg-ink-50 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100"
-              >
-                <Plus size={17} />
-                New page
-              </button>
+              {/* voice: big, in the middle */}
+              <div className="min-w-0 flex-1">
+                <VoiceNote voice={voice} />
+              </div>
+              {/* new page: compact, on the right */}
+              <div className="vn-side">
+                <button
+                  type="button"
+                  onClick={addPage}
+                  aria-label="New page"
+                  title="New page"
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-ink-200/80 bg-white text-ink-800 shadow-[0_1px_3px_rgb(20_22_26/0.08)] active:bg-ink-50 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100"
+                >
+                  <Plus size={19} />
+                </button>
               </div>
             </div>
           </div>

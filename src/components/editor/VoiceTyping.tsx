@@ -39,9 +39,9 @@ export function MicButton({ voice, className }: { voice: VoiceTyping; className?
 }
 
 /** Live transcript, language switch, and offline-model prompts. */
-export function VoicePanel({ voice, floating }: { voice: VoiceTyping; floating?: boolean }) {
+export function VoicePanel({ voice, floating, compact }: { voice: VoiceTyping; floating?: boolean; compact?: boolean }) {
   if (voice.status === 'idle') return null
-  const panel = <PanelBody voice={voice} />
+  const panel = <PanelBody voice={voice} compact={compact} />
   if (!floating) return panel
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-12 z-40 flex justify-center px-4">
@@ -50,7 +50,8 @@ export function VoicePanel({ voice, floating }: { voice: VoiceTyping; floating?:
   )
 }
 
-function PanelBody({ voice }: { voice: VoiceTyping }) {
+/** compact: the phone bar's voice pill has its own stop/done controls. */
+function PanelBody({ voice, compact }: { voice: VoiceTyping; compact?: boolean }) {
   const { status } = voice
   const shell =
     'animate-fade-slide-in w-full rounded-[22px] border border-ink-200/80 bg-white/95 px-4 py-3 text-ink-800 shadow-[0_10px_30px_-10px_rgb(20_22_26/0.25)] backdrop-blur dark:border-ink-700 dark:bg-ink-900/95 dark:text-ink-100'
@@ -177,6 +178,7 @@ function PanelBody({ voice }: { voice: VoiceTyping }) {
             </button>
           ))}
         </div>
+        {!compact && (
         <button
           type="button"
           {...keep}
@@ -186,6 +188,7 @@ function PanelBody({ voice }: { voice: VoiceTyping }) {
         >
           <Square size={12} fill="currentColor" />
         </button>
+        )}
       </div>
       <p className={cn('mt-2 min-h-[22px] text-[15px] leading-snug', voice.interim ? 'text-ink-700 dark:text-ink-200' : 'text-ink-400 dark:text-ink-500')}>
         {voice.interim || (voice.lang === 'ml' ? 'സംസാരിക്കൂ… text appears at the cursor' : 'Speak… text appears at the cursor')}

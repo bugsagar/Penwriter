@@ -89,7 +89,8 @@ function resample(input: Float32Array, from: number): Float32Array {
 }
 
 export interface OfflineSession {
-  stop: () => Promise<void>
+  /** Stop listening; `discard` drops the phrase in progress instead of decoding it. */
+  stop: (discard?: boolean) => Promise<void>
 }
 
 /**
@@ -210,10 +211,10 @@ export async function startOffline(opts: {
   }
 
   return {
-    stop: async () => {
+    stop: async (discard = false) => {
       if (stopped) return
       stopped = true
-      if (inSpeech && seg.length > 3) commit(seg)
+      if (!discard && inSpeech && seg.length > 3) commit(seg)
       seg = []
       node.port.onmessage = null
       src.disconnect()
