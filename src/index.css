@@ -103,7 +103,7 @@ body {
 .sp-block {
   font-family: var(--sp-font, var(--font-screenplay));
   font-size: var(--sp-size, 12pt);
-  line-height: 1;
+  line-height: 1.35; /* = LEADING in utils/layout.ts: pages break where they look full */
   outline: none;
   white-space: pre-wrap;
   word-wrap: break-word;

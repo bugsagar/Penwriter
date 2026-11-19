@@ -16,6 +16,9 @@ export function setCaret(div: HTMLElement, pos: 'start' | 'end' | number): void 
   sel.removeAllRanges()
   sel.addRange(range)
   div.focus({ preventScroll: false })
+  // Tell the page right away (selectionchange comes later): a keystroke that
+  // moves the caret and then re-flows the pages must keep the new spot.
+  document.dispatchEvent(new Event('reel:caret'))
 }
 
 export function escapeHtml(s: string): string {

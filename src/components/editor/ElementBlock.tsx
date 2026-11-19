@@ -1,3 +1,4 @@
+import { flushSync } from 'react-dom'
 import { useEffect, useRef, useState } from 'react'
 import type { ElementType, ScreenplayElement } from '../../types'
 import { ELEMENT_HINTS, ELEMENT_LABELS, detectTypeWhileTyping, isCharacterLine, isSceneHeading, isTransition } from '../../utils/detect'
@@ -226,12 +227,16 @@ export function ElementBlock({
 
     const focusNewBlock = (newType: ElementType) => {
       const newEl: ScreenplayElement = { id: uid('el'), type: newType, text: '' }
-      onInsert(index + 1, [newEl])
-      requestAnimationFrame(() => {
-        const node = document.querySelector(
-          `[data-elid="${newEl.id}"]`,
-        ) as HTMLDivElement | null
-        if (node) setCaret(node, 'start')
+      // Render the new line now, so the caret goes straight into it — even
+      // when it carries its block over to the next page (which re-creates
+      // this line there and would otherwise drop the caret mid-keystroke).
+      flushSync(() => onInsert(index + 1, [newEl]))
+      const find = () => document.querySelector(`[data-elid="${newEl.id}"]`) as HTMLDivElement | null
+      const node = find()
+      if (node) setCaret(node, 'start')
+      else requestAnimationFrame(() => {
+        const later = find()
+        if (later) setCaret(later, 'start')
       })
     }
 
@@ -301,6 +306,7 @@ export function ElementBlock({
       }
       if (e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) {
         // Type to filter the menu instead of inserting text.
+        e.preventDefault()
         setMenuFilter((f) => f + e.key)
         return
       }

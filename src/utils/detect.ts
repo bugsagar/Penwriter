@@ -130,7 +130,10 @@ export function detectTypeWhileTyping(current: ElementType, text: string): Eleme
   if (current === 'SCENE_HEADING') {
     return t ? 'SCENE_HEADING' : 'ACTION'
   }
-  if (current === 'CHARACTER' && t && !isCharacterLine(t)) {
+  // A line set to Character stays one while the name is typed — in any
+  // script (Malayalam has no capitals) and in any case (it shows in caps).
+  // Only something far too long to be a name falls back to action.
+  if (current === 'CHARACTER' && t.length > 50) {
     return 'ACTION'
   }
   if (current === 'TRANSITION' && t && !isTransition(t)) {

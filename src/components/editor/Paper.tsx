@@ -167,9 +167,11 @@ export function Paper({
     // input fires before React re-renders, so the caret is current even when
     // this keystroke is the one that pushes the line onto the next page
     document.addEventListener('input', onSel, true)
+    document.addEventListener('reel:caret', onSel)
     return () => {
       document.removeEventListener('selectionchange', onSel)
       document.removeEventListener('input', onSel, true)
+      document.removeEventListener('reel:caret', onSel)
     }
   }, [])
   // Runs after the lines have synced their text (children's effects run
@@ -182,6 +184,26 @@ export function Paper({
     const inLine = !!active?.closest?.('[data-elid]')
     if (inLine && now && now.id === m.id && now.offset === m.offset) return // caret is fine
     if (inLine && now && now.id !== m.id) return // the user moved elsewhere
+    if (inLine && now && active) {
+      // The caret's piece still holds where it was: the caret just moved
+      // within it (Enter's soft line break, say) faster than selectionchange
+      // reports. Keep it — putting back the older spot would undo the move.
+      const host = active.closest<HTMLElement>('[data-elid]')!
+      const from = Number(host.dataset.fragStart ?? 0)
+      const to = from + (host.textContent ?? '').length
+      if (m.offset >= from && m.offset <= to) {
+        caretMemo.current = { ...now, at: performance.now() }
+        return
+      }
+    }
+    // The line got shorter than where the caret was (Enter trimmed it and
+    // moved on to a new line): that spot is gone, so leave the caret be.
+    const el = pages.flat().find((p) => p.el.id === m.id)?.el
+    if (!el || m.offset > el.text.length) {
+      caretMemo.current = null
+      restoring.current = null
+      return
+    }
     // the piece of the paragraph that holds the caret now
     let target: { pi: number; part: SheetPart } | null = null
     pages.forEach((pg, pi) =>

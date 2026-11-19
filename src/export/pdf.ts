@@ -1,6 +1,6 @@
 import { StandardFonts, PDFDocument, rgb, type PDFFont, type PDFPage, type RGB } from 'pdf-lib'
 import type { Project } from '../types'
-import { layoutFor, paginate, BLOCK_SPACING, FONT_SIZE, MARGIN_T, PAGE_W, sizeFor } from '../utils/layout'
+import { layoutFor, paginate, BLOCK_SPACING, FONT_SIZE, MARGIN_T, PAGE_W, sizeFor, lineH } from '../utils/layout'
 
 export function downloadBlob(bytes: Uint8Array, filename: string, mime: string) {
   const blob = new Blob([bytes as BlobPart], { type: mime })
@@ -196,7 +196,7 @@ export async function exportPdf(project: Project): Promise<void> {
         }
         await drawTextAny(doc, pg, line, { x, y, size, font, color, bold: isBold, italic: isItalic })
         if (el.underline) underline(pg, x, y, line, font, color, size)
-        y -= size
+        y -= lineH(size)
       }
       y -= BLOCK_SPACING
     }

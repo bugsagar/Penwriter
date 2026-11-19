@@ -11,11 +11,14 @@ export const LINE_H = 12
 export const BLOCK_SPACING = 12
 export const CONTENT_W = PAGE_W - MARGIN_L - MARGIN_R
 export const CONTENT_H = PAGE_H - MARGIN_T - MARGIN_B
-export const LINES_PER_PAGE = Math.floor(CONTENT_H / LINE_H)
+/** Line spacing, as a multiple of the font size — the same as the editor's
+ *  pages (CSS line-height 1.35), so pages fill exactly as far as they show. */
+export const LEADING = 1.35
+export const LINES_PER_PAGE = Math.floor(CONTENT_H / (LINE_H * LEADING))
 
-/** Dialogue renders 70% bigger than the base size, everywhere. */
-export function scaleFor(type: ElementType): number {
-  return type === 'DIALOGUE' ? 1.7 : 1
+/** Every element type renders at the base size (as in the editor). */
+export function scaleFor(_type: ElementType): number {
+  return 1
 }
 
 export function sizeFor(type: ElementType): number {
@@ -127,8 +130,13 @@ export interface Page {
   usedPt: number
 }
 
+/** The height of one line of text at this size. */
+export function lineH(sizePt: number): number {
+  return sizePt * LEADING
+}
+
 function elementPt(lines: number, sizePt: number): number {
-  return Math.max(lines, 1) * sizePt + BLOCK_SPACING
+  return Math.max(lines, 1) * lineH(sizePt) + BLOCK_SPACING
 }
 
 function unitInfo(
@@ -203,7 +211,7 @@ export function paginate(elements: ScreenplayElement[]): Page[] {
       }
       const empty = page.items.length === 0
       if (canSplit) {
-        const room = Math.floor((CONTENT_H - page.usedPt - BLOCK_SPACING) / size)
+        const room = Math.floor((CONTENT_H - page.usedPt - BLOCK_SPACING) / lineH(size))
         if (empty ? room >= 1 : room >= 2 && rest - room >= 2) {
           push(from, from + room)
           from += room
