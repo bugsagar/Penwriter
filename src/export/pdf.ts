@@ -46,13 +46,76 @@ function underline(
   size: number,
 ) {
   if (!text) return
-  const w = font.widthOfTextAtSize(text, size)
+  const w = widthOf(text, font, size, false, false)
   pg.drawLine({
     start: { x, y: baselineY - size * 0.12 },
     end: { x: x + w, y: baselineY - size * 0.12 },
     thickness: 0.75,
     color,
   })
+}
+
+/* ---------- text the PDF's Courier can't draw ----------
+   The built-in PDF fonts only cover Latin (WinAnsi). Malayalam and other
+   scripts — or emoji — are drawn by the browser, which shapes them
+   properly, onto a canvas, and placed in the PDF as an image at the same
+   spot. Latin text stays real, selectable PDF text. */
+const RASTER_SCALE = 4 // canvas pixels per PDF point (~288 dpi)
+
+function canEncode(font: PDFFont, text: string): boolean {
+  try {
+    font.encodeText(text)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function cssFont(size: number, bold: boolean, italic: boolean): string {
+  return `${italic ? 'italic ' : ''}${bold ? '700 ' : ''}${size * RASTER_SCALE}px "Courier Prime", "Courier New", "Noto Sans Malayalam", "Manjari", "Kartika", sans-serif`
+}
+
+let measureCanvas: CanvasRenderingContext2D | null = null
+function rasterWidth(text: string, size: number, bold: boolean, italic: boolean): number {
+  measureCanvas ??= document.createElement('canvas').getContext('2d')
+  if (!measureCanvas) return text.length * size * 0.6
+  measureCanvas.font = cssFont(size, bold, italic)
+  return measureCanvas.measureText(text).width / RASTER_SCALE
+}
+
+/** Width in points, whichever way the text will be drawn. */
+function widthOf(text: string, font: PDFFont, size: number, bold: boolean, italic: boolean): number {
+  return canEncode(font, text) ? font.widthOfTextAtSize(text, size) : rasterWidth(text, size, bold, italic)
+}
+
+async function drawTextAny(
+  doc: PDFDocument,
+  pg: PDFPage,
+  text: string,
+  o: { x: number; y: number; size: number; font: PDFFont; color: RGB; bold: boolean; italic: boolean },
+) {
+  if (!text) return
+  if (canEncode(o.font, text)) {
+    pg.drawText(text, { x: o.x, y: o.y, size: o.size, font: o.font, color: o.color })
+    return
+  }
+  const w = rasterWidth(text, o.size, o.bold, o.italic)
+  const h = o.size * 1.6
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.max(1, Math.ceil((w + 2) * RASTER_SCALE))
+  canvas.height = Math.ceil(h * RASTER_SCALE)
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  ctx.font = cssFont(o.size, o.bold, o.italic)
+  ctx.fillStyle = `rgb(${Math.round(o.color.red * 255)}, ${Math.round(o.color.green * 255)}, ${Math.round(o.color.blue * 255)})`
+  ctx.textBaseline = 'alphabetic'
+  const baseline = o.size * 1.2 // from the image's top, in points
+  ctx.fillText(text, 0, baseline * RASTER_SCALE)
+  const png = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/png'))
+  if (!png) return
+  const img = await doc.embedPng(new Uint8Array(await png.arrayBuffer()))
+  // the image's bottom sits below the baseline by the part under it
+  pg.drawImage(img, { x: o.x, y: o.y - (h - baseline), width: canvas.width / RASTER_SCALE, height: h })
 }
 
 function safeName(title: string): string {
@@ -72,18 +135,12 @@ export async function exportPdf(project: Project): Promise<void> {
   const hasAuthor = project.author.trim().length > 0
   if (hasTitle || hasAuthor) {
     const centerX = (text: string, font: PDFFont, size: number) =>
-      (PAGE_W - font.widthOfTextAtSize(text, size)) / 2
+      (PAGE_W - widthOf(text, font, size, font === bold, false)) / 2
 
     if (hasTitle) {
       const t = project.title.trim().toUpperCase()
       const size = t.length > 24 ? 22 : 30
-      page.drawText(t, {
-        x: centerX(t, bold, size),
-        y: 440,
-        size,
-        font: bold,
-        color: INK,
-      })
+      await drawTextAny(doc, page, t, { x: centerX(t, bold, size), y: 440, size, font: bold, color: INK, bold: true, italic: false })
     }
     if (hasTitle && hasAuthor) {
       const written = 'written by'
@@ -97,13 +154,7 @@ export async function exportPdf(project: Project): Promise<void> {
     }
     if (hasAuthor) {
       const author = project.author.trim().toUpperCase()
-      page.drawText(author, {
-        x: centerX(author, regular, 16),
-        y: 380,
-        size: 16,
-        font: regular,
-        color: INK,
-      })
+      await drawTextAny(doc, page, author, { x: centerX(author, regular, 16), y: 380, size: 16, font: regular, color: INK, bold: false, italic: false })
     }
   }
 
@@ -136,14 +187,14 @@ export async function exportPdf(project: Project): Promise<void> {
       for (const line of lines) {
         let x = layout.x
         const align = el.align ?? defaultExportAlign(el.type, layout.align)
-        const w = font.widthOfTextAtSize(line, size)
+        const w = widthOf(line, font, size, isBold, isItalic)
         if (align === 'right') {
           const rightEdge = Math.min(layout.x + layout.width, PAGE_W - 72)
           x = rightEdge - w
         } else if (align === 'center') {
           x = layout.x + Math.max(layout.width - w, 0) / 2
         }
-        pg.drawText(line, { x, y, size, font, color })
+        await drawTextAny(doc, pg, line, { x, y, size, font, color, bold: isBold, italic: isItalic })
         if (el.underline) underline(pg, x, y, line, font, color, size)
         y -= size
       }

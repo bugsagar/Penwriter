@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, PanelLeftOpen, PanelRightOpen, Plus } from 'lucide-react'
 import { useApp } from '../../store/useApp'
-import { countWords, pageCount } from '../../utils/layout'
+import { countWords, pageCount, sheetsOf } from '../../utils/layout'
 import { saveProjects } from '../../utils/storage'
 import { flushSync } from 'react-dom'
 import { TopBar } from './TopBar'
-import { sceneChunks } from '../../utils/scenes'
 import { uid } from '../../utils/id'
 import { Sidebar } from './Sidebar'
 import { Inspector, type Focus } from './Inspector'
@@ -243,9 +242,22 @@ export function Editor() {
     [elements],
   )
 
-  const pageChunks = useMemo(() => sceneChunks(elements), [elements])
+  const pageChunks = useMemo(() => sheetsOf(elements), [elements])
   const pageTotal = Math.max(1, pageChunks.length)
   const curPage = Math.min(pageIdx, pageTotal - 1)
+  // Phone: when the line being edited moves onto another page (it filled
+  // the page), follow it there.
+  const editingId = focus.kind === 'element' ? focus.id : null
+  const editingRef = useRef(editingId)
+  useEffect(() => {
+    editingRef.current = editingId
+  })
+  useEffect(() => {
+    if (!isMobile || !editingRef.current) return
+    const p = pageChunks.findIndex((c) => c.some((el) => el.id === editingRef.current))
+    if (p !== -1) setPageIdx((cur) => (cur === p ? cur : p))
+  }, [isMobile, pageChunks])
+
   useEffect(() => {
     const chunk = isMobile ? pageChunks[curPage] : undefined
     pageEndRef.current = chunk?.length ? chunk[chunk.length - 1].id : null
@@ -270,7 +282,7 @@ export function Editor() {
   }
 
   const addPage = () => {
-    const el = { id: uid('el'), type: 'SCENE_HEADING' as const, text: '' }
+    const el = { id: uid('el'), type: 'SCENE_HEADING' as const, text: '', pageBreak: true }
     // Render synchronously so focus lands inside the tap (phones only open
     // the keyboard for focus that happens during a user gesture).
     flushSync(() => {

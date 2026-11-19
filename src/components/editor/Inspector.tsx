@@ -408,7 +408,7 @@ export function Inspector({ project, focus, onFocus, onJumpToScene, onCollapse }
   const removeCharacter = useApp((s) => s.removeCharacter)
 
   const addPage = () => {
-    const heading = { id: uid('el'), type: 'SCENE_HEADING' as const, text: '' }
+    const heading = { id: uid('el'), type: 'SCENE_HEADING' as const, text: '', pageBreak: true }
     insertElements(project.elements.length, [heading])
     // Wait a frame so the new block is rendered before scrolling to it.
     // Focus is left untouched so the right panel stays on Format.

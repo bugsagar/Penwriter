@@ -20,6 +20,8 @@ export interface ScreenplayElement {
   align?: TextAlign
   /** Hex text color, e.g. '#1a1a1a'. Undefined = default ink. */
   color?: string
+  /** Start a new page before this element (set by "New page"). */
+  pageBreak?: boolean
 }
 
 export type TextAlign = 'left' | 'center' | 'right' | 'justify'

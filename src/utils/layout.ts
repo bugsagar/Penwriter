@@ -163,6 +163,8 @@ export function paginate(elements: ScreenplayElement[]): Page[] {
   let i = 0
   while (i < elements.length) {
     const el = elements[i]
+    // "New page": an explicit break before this element
+    if (el.pageBreak && page.items.length > 0) newPage()
     const keepWithNext = el.type === 'SCENE_HEADING' || el.type === 'CHARACTER'
     const unit = keepWithNext ? unitInfo(elements, i) : null
 
@@ -183,6 +185,15 @@ export function paginate(elements: ScreenplayElement[]): Page[] {
 
   if (page.items.length > 0) pages.push(page)
   return pages.length ? pages : [{ items: [], usedPt: 0 }]
+}
+
+/**
+ * The editor's sheets: the same page breaks as the PDF (a page fills, then
+ * continues on the next; "New page" forces a break), as lists of elements.
+ */
+export function sheetsOf(elements: ScreenplayElement[]): ScreenplayElement[][] {
+  const pages = paginate(elements).map((p) => p.items.map((it) => it.element))
+  return pages.length ? pages : [[]]
 }
 
 export function countWords(elements: ScreenplayElement[]): number {

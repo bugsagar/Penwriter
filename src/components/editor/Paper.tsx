@@ -4,11 +4,11 @@ import type { ScreenplayElement } from '../../types'
 import type { CSSProperties } from 'react'
 import { useApp } from '../../store/useApp'
 import { fontStackFor, FONT_SIZE_DEFAULT } from '../../utils/fonts'
-import { sceneChunks } from '../../utils/scenes'
 import { ElementBlock } from './ElementBlock'
 import { setCaret } from '../../utils/focus'
 import { uid } from '../../utils/id'
 import { nextTypeAfterEnter } from '../../utils/detect'
+import { sheetsOf } from '../../utils/layout'
 
 interface PaperProps {
   elements: ScreenplayElement[]
@@ -111,9 +111,44 @@ export function Paper({
   // One sheet per scene ("page"), so every created page is visible as its
   // own layer with a 14px gap to the next — matching the Pages menu.
   const pages = useMemo(() => {
-    const c = sceneChunks(elements)
-    return c.length ? c : ([[]] as ScreenplayElement[][])
+    return sheetsOf(elements)
   }, [elements])
+  /*
+   * A line that no longer fits moves onto the next sheet, which re-creates it
+   * there — and a re-created line has no caret. Remember where the caret was
+   * and put it back, so typing carries straight on across the page break.
+   */
+  const caretMemo = useRef<{ id: string; offset: number; at: number } | null>(null)
+  useEffect(() => {
+    const onSel = () => {
+      const sel = window.getSelection()
+      if (!sel || sel.rangeCount === 0) return
+      const n = sel.focusNode
+      const host = (n instanceof Element ? n : n?.parentElement)?.closest<HTMLElement>('[data-elid]')
+      if (!host?.dataset.elid) return
+      const r = document.createRange()
+      r.selectNodeContents(host)
+      r.setEnd(sel.focusNode!, sel.focusOffset)
+      caretMemo.current = { id: host.dataset.elid, offset: r.toString().length, at: performance.now() }
+    }
+    document.addEventListener('selectionchange', onSel)
+    // input fires before React re-renders, so the caret is current even when
+    // this keystroke is the one that pushes the line onto the next page
+    document.addEventListener('input', onSel, true)
+    return () => {
+      document.removeEventListener('selectionchange', onSel)
+      document.removeEventListener('input', onSel, true)
+    }
+  }, [])
+  useLayoutEffect(() => {
+    const m = caretMemo.current
+    if (!m || performance.now() - m.at > 2000) return
+    const active = document.activeElement as HTMLElement | null
+    if (active?.closest?.('[data-elid]')) return // caret is fine
+    const node = refs.current.get(m.id)
+    if (node && node.isConnected) setCaret(node, m.offset)
+  }, [pages, pageIndex])
+
   const indexOf = useMemo(() => new Map(elements.map((el, i) => [el.id, i])), [elements])
 
   /*

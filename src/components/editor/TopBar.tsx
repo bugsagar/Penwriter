@@ -125,6 +125,7 @@ export function TopBar({
       else exportFountain(project)
     } catch (err) {
       console.error('Export failed', err)
+      window.alert(`Sorry — the export didn't work.\n\n${err instanceof Error ? err.message : String(err)}`)
     }
   }
 
@@ -187,7 +188,7 @@ export function TopBar({
               <div className="my-1 border-t border-ink-100 dark:border-ink-800" />
               <MenuItem
                 icon={<Files size={15} />}
-                label="Pages"
+                label="Scenes"
                 onClick={() => {
                   close()
                   onOpenPages?.()
