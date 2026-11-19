@@ -400,7 +400,29 @@ function FormatPanel({
   )
 }
 
-export function Inspector({ project, focus, onFocus, onJumpToScene, onCollapse }: { project: Project; focus: Focus; onFocus: (f: Focus) => void; onJumpToScene: (id: string) => void; onCollapse: () => void }) {
+export function Inspector({
+  project,
+  focus,
+  onFocus,
+  onJumpToScene,
+  onCollapse,
+  tab = 'format',
+  onTab,
+  notesPanel,
+  openNotes = 0,
+}: {
+  project: Project
+  focus: Focus
+  onFocus: (f: Focus) => void
+  onJumpToScene: (id: string) => void
+  onCollapse: () => void
+  /** Right panel tab: formatting, or the page notes. */
+  tab?: 'format' | 'notes'
+  onTab?: (t: 'format' | 'notes') => void
+  notesPanel?: React.ReactNode
+  /** open (unticked) notes on the page in view, for the tab badge */
+  openNotes?: number
+}) {
   const updateElement = useApp((s) => s.updateElement)
   const insertElements = useApp((s) => s.insertElements)
   const setSceneNote = useApp((s) => s.setSceneNote)
@@ -587,7 +609,9 @@ export function Inspector({ project, focus, onFocus, onJumpToScene, onCollapse }
   }
 
   const title =
-    focus.kind === 'scene' && activeScene
+    tab === 'notes' && notesPanel
+      ? 'Page notes'
+      : focus.kind === 'scene' && activeScene
       ? `Scene ${activeScene.number}`
       : focus.kind === 'character' && activeCharacter
         ? activeCharacter.name
@@ -603,8 +627,34 @@ export function Inspector({ project, focus, onFocus, onJumpToScene, onCollapse }
           <PanelRightClose size={14} />
         </IconButton>
       </div>
+      {notesPanel && (
+        <div className="flex gap-1 border-b border-ink-100 px-2.5 py-1.5 dark:border-ink-800">
+          {(['format', 'notes'] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => onTab?.(t)}
+              className={cn(
+                'flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-[12.5px] font-medium transition-colors',
+                tab === t
+                  ? 'bg-ink-100 text-ink-900 dark:bg-ink-800 dark:text-ink-50'
+                  : 'text-ink-500 hover:text-ink-800 dark:text-ink-400 dark:hover:text-ink-100',
+              )}
+            >
+              {t === 'format' ? 'Format' : 'Notes'}
+              {t === 'notes' && openNotes > 0 && (
+                <span className="rounded-full bg-[#f3c74f] px-1.5 text-[10.5px] font-semibold leading-[16px] text-[#4a3a0a]">
+                  {openNotes}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {focus.kind === 'scene' && activeScene ? (
+        {tab === 'notes' && notesPanel ? (
+          notesPanel
+        ) : focus.kind === 'scene' && activeScene ? (
           renderScene()
         ) : focus.kind === 'character' && activeCharacter ? (
           renderCharacter()
@@ -621,7 +671,7 @@ export function Inspector({ project, focus, onFocus, onJumpToScene, onCollapse }
             onAddPage={addPage}
           />
         )}
-        {focus.kind === 'project' && (
+        {focus.kind === 'project' && tab !== 'notes' && (
           <p className="px-3.5 pb-3 text-[11px] text-ink-400 dark:text-ink-500">
             {stats.pages} pages · {stats.words.toLocaleString()} words · ~{Math.round(stats.pages)} min
           </p>

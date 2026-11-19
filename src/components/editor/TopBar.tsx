@@ -10,6 +10,8 @@ import {
   Moon,
   Search,
   Settings,
+  Share2,
+  StickyNote,
   Sparkles,
   Sun,
   Table,
@@ -59,6 +61,8 @@ interface Props {
   /** Phone layout: one simple row with an overflow menu. */
   compact?: boolean
   onOpenPages?: () => void
+  /** Phone: open the notes for the page in view. */
+  onOpenNotes?: () => void
   /** Extra buttons for the desktop toolbar (e.g. voice typing). */
   tools?: React.ReactNode
 }
@@ -106,6 +110,7 @@ export function TopBar({
   onGoHome,
   compact = false,
   onOpenPages,
+  onOpenNotes,
   tools,
 }: Props) {
   const undo = useApp((s) => s.undo)
@@ -126,6 +131,26 @@ export function TopBar({
     } catch (err) {
       console.error('Export failed', err)
       window.alert(`Sorry — the export didn't work.\n\n${err instanceof Error ? err.message : String(err)}`)
+    }
+  }
+
+  // Share: open the view-only link in a new tab and copy it. The tab is
+  // opened first, inside the click, so pop-up blockers allow it.
+  const share = async () => {
+    const tab = window.open('', '_blank')
+    try {
+      const { createShareLink } = await import('../../utils/share')
+      const url = await createShareLink(project)
+      try {
+        await navigator.clipboard.writeText(url)
+      } catch {
+        /* the viewer has its own Copy link */
+      }
+      if (tab) tab.location.href = `${url}&new=1`
+      else window.location.href = `${url}&new=1`
+    } catch (err) {
+      tab?.close()
+      window.alert(`Sorry — the share link couldn't be made.\n\n${err instanceof Error ? err.message : String(err)}`)
     }
   }
 
@@ -194,6 +219,16 @@ export function TopBar({
                   onOpenPages?.()
                 }}
               />
+              {onOpenNotes && (
+                <MenuItem
+                  icon={<StickyNote size={15} />}
+                  label="Page notes"
+                  onClick={() => {
+                    close()
+                    onOpenNotes()
+                  }}
+                />
+              )}
               <MenuItem
                 icon={<FileText size={15} />}
                 label="Export PDF"
@@ -208,6 +243,14 @@ export function TopBar({
                 onClick={() => {
                   close()
                   doExport('fountain')
+                }}
+              />
+              <MenuItem
+                icon={<Share2 size={15} />}
+                label="Share view-only link"
+                onClick={() => {
+                  close()
+                  void share()
                 }}
               />
               <div className="my-1 border-t border-ink-100 dark:border-ink-800" />
@@ -344,6 +387,15 @@ export function TopBar({
               </>
             )}
           </Dropdown>
+          <button
+            type="button"
+            onClick={share}
+            title="Share a view-only link"
+            className="mr-1 inline-flex h-8 items-center gap-1.5 rounded-md bg-ink-950 px-2.5 text-[12.5px] font-medium text-white transition-colors hover:bg-ink-800 dark:bg-ink-50 dark:text-ink-950 dark:hover:bg-white"
+          >
+            <Share2 size={13} />
+            Share
+          </button>
           <IconButton title="Settings" onClick={onOpenSettings} className="h-8 w-8">
             <Settings size={15} />
           </IconButton>

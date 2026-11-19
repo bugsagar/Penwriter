@@ -8,7 +8,7 @@ import { ElementBlock } from './ElementBlock'
 import { setCaret } from '../../utils/focus'
 import { uid } from '../../utils/id'
 import { nextTypeAfterEnter } from '../../utils/detect'
-import { sheetsOf } from '../../utils/layout'
+import { sheetsOf, type SheetPart } from '../../utils/layout'
 
 interface PaperProps {
   elements: ScreenplayElement[]
@@ -21,9 +21,27 @@ interface PaperProps {
   scrollToId: (id: string) => void
   /** Phone layout: fluid page, no zoom, proportional indents. */
   compact?: boolean
-  /** Phone layout: render only this page (scene). */
+  /** Phone layout: render only this page. */
   pageIndex?: number
+  /** Phone layout: the caret moved onto another page (text flowed there). */
+  onFollowPage?: (page: number) => void
+  /** Open page notes per page, shown as a marker on the page. */
+  noteCounts?: Record<number, number>
+  onOpenNotes?: (page: number) => void
 }
+
+function NoteMark() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z" />
+      <path d="M15 3v4a2 2 0 0 0 2 2h4" />
+    </svg>
+  )
+}
+
+/** A split paragraph's first piece is registered under the element id (so
+ *  focusing "the line" lands at its start); later pieces get their own key. */
+const partKey = (p: { el: { id: string }; start: number }) => (p.start === 0 ? p.el.id : `${p.el.id}@${p.start}`)
 
 export function Paper({
   elements,
@@ -36,6 +54,9 @@ export function Paper({
   scrollToId,
   compact = false,
   pageIndex,
+  onFollowPage,
+  noteCounts,
+  onOpenNotes,
 }: PaperProps) {
   const updateElement = useApp((s) => s.updateElement)
   const insertElements = useApp((s) => s.insertElements)
@@ -119,17 +140,28 @@ export function Paper({
    * and put it back, so typing carries straight on across the page break.
    */
   const caretMemo = useRef<{ id: string; offset: number; at: number } | null>(null)
+  // The caret's position in the whole paragraph (a split paragraph's pieces
+  // each know where they start in it).
+  const caretNow = (): { id: string; offset: number } | null => {
+    const sel = window.getSelection()
+    if (!sel || sel.rangeCount === 0) return null
+    const n = sel.focusNode
+    const host = (n instanceof Element ? n : n?.parentElement)?.closest<HTMLElement>('[data-elid]')
+    if (!host?.dataset.elid) return null
+    const r = document.createRange()
+    r.selectNodeContents(host)
+    r.setEnd(sel.focusNode!, sel.focusOffset)
+    return { id: host.dataset.elid, offset: Number(host.dataset.fragStart ?? 0) + r.toString().length }
+  }
+  // While a caret is being put back (possibly after a page change on the
+  // phone), the browser reports the caret's interim jumps — ignore those.
+  const restoring = useRef<{ id: string; offset: number; at: number } | null>(null)
   useEffect(() => {
     const onSel = () => {
-      const sel = window.getSelection()
-      if (!sel || sel.rangeCount === 0) return
-      const n = sel.focusNode
-      const host = (n instanceof Element ? n : n?.parentElement)?.closest<HTMLElement>('[data-elid]')
-      if (!host?.dataset.elid) return
-      const r = document.createRange()
-      r.selectNodeContents(host)
-      r.setEnd(sel.focusNode!, sel.focusOffset)
-      caretMemo.current = { id: host.dataset.elid, offset: r.toString().length, at: performance.now() }
+      if (restoring.current && performance.now() - restoring.current.at < 800) return
+      restoring.current = null
+      const c = caretNow()
+      if (c) caretMemo.current = { ...c, at: performance.now() }
     }
     document.addEventListener('selectionchange', onSel)
     // input fires before React re-renders, so the caret is current even when
@@ -140,16 +172,44 @@ export function Paper({
       document.removeEventListener('input', onSel, true)
     }
   }, [])
-  useLayoutEffect(() => {
-    const m = caretMemo.current
+  // Runs after the lines have synced their text (children's effects run
+  // first), so a piece whose text just changed under the caret is fixed too.
+  useEffect(() => {
+    const m = restoring.current ?? caretMemo.current
     if (!m || performance.now() - m.at > 2000) return
+    const now = caretNow()
     const active = document.activeElement as HTMLElement | null
-    if (active?.closest?.('[data-elid]')) return // caret is fine
-    const node = refs.current.get(m.id)
-    if (node && node.isConnected) setCaret(node, m.offset)
-  }, [pages, pageIndex])
+    const inLine = !!active?.closest?.('[data-elid]')
+    if (inLine && now && now.id === m.id && now.offset === m.offset) return // caret is fine
+    if (inLine && now && now.id !== m.id) return // the user moved elsewhere
+    // the piece of the paragraph that holds the caret now
+    let target: { pi: number; part: SheetPart } | null = null
+    pages.forEach((pg, pi) =>
+      pg.forEach((part) => {
+        if (part.el.id === m.id && m.offset >= part.start && (m.offset <= part.end || !target)) {
+          if (!target || part.start >= target.part.start) target = { pi, part }
+        }
+      }),
+    )
+    if (!target) return
+    const { pi, part } = target as { pi: number; part: SheetPart }
+    restoring.current = { id: m.id, offset: m.offset, at: performance.now() }
+    if (pageIndex !== undefined && pi !== pageIndex) {
+      onFollowPage?.(pi) // phone: go to the page it flowed onto; this runs again there
+      return
+    }
+    const node = refs.current.get(partKey(part))
+    if (node && node.isConnected) setCaret(node, m.offset - part.start)
+    caretMemo.current = { id: m.id, offset: m.offset, at: performance.now() }
+    // let the browser's report of this caret move pass, then track normally
+    requestAnimationFrame(() => {
+      restoring.current = null
+    })
+  }, [pages, pageIndex, onFollowPage])
 
   const indexOf = useMemo(() => new Map(elements.map((el, i) => [el.id, i])), [elements])
+  const partsOf = (id: string) => pages.flat().filter((p) => p.el.id === id)
+
 
   /*
    * Tap/click anywhere on the canvas to write there:
@@ -205,7 +265,7 @@ export function Paper({
       // Which lines are candidates: the page tapped on (or showing), else all.
       const sheet = target.closest<HTMLElement>('[data-sheet]')
       const pi = pageIndex ?? (sheet ? Number(sheet.dataset.sheet) : -1)
-      const pool = pi >= 0 ? (pages[pi] ?? []) : elements
+      const pool: SheetPart[] = pi >= 0 ? (pages[pi] ?? []) : elements.map((el) => ({ el, start: 0, end: el.text.length }))
 
       e.preventDefault()
       if (pool.length === 0) {
@@ -214,17 +274,17 @@ export function Paper({
       }
 
       const last = pool[pool.length - 1]
-      const lastNode = refs.current.get(last.id)
+      const lastNode = refs.current.get(partKey(last))
       if (lastNode && e.clientY > lastNode.getBoundingClientRect().bottom) {
-        newLineAfter(last, (indexOf.get(last.id) ?? elements.length - 1) + 1)
+        newLineAfter(last.el, (indexOf.get(last.el.id) ?? elements.length - 1) + 1)
         return
       }
 
       // Nearest line by vertical distance.
       let best: HTMLElement | null = null
       let bestD = Infinity
-      for (const el of pool) {
-        const node = refs.current.get(el.id)
+      for (const part of pool) {
+        const node = refs.current.get(partKey(part))
         if (!node) continue
         const r = node.getBoundingClientRect()
         const d = e.clientY < r.top ? r.top - e.clientY : e.clientY > r.bottom ? e.clientY - r.bottom : 0
@@ -267,33 +327,67 @@ export function Paper({
             }
             className={
               compact
-                ? 'pb-6 text-ink-900'
+                ? 'relative pb-6 text-ink-900'
                 : typewriter
-                  ? 'min-h-[11in] bg-paper px-[1.5in] pb-[1in] pt-[1in] text-ink-900 shadow-paper dark:bg-[#fdfdfc]'
-                  : 'paper-card min-h-[11in] px-[1.5in] pb-[1in] pt-[1in]'
+                  ? 'relative min-h-[11in] bg-paper px-[1.5in] pb-[1in] pt-[1in] text-ink-900 shadow-paper dark:bg-[#fdfdfc]'
+                  : 'paper-card relative min-h-[11in] px-[1.5in] pb-[1in] pt-[1in]'
             }
           >
-            {pg.map((el) => {
+            {!!noteCounts?.[pi] && onOpenNotes && (
+              <button
+                type="button"
+                onClick={() => onOpenNotes(pi)}
+                title={`${noteCounts[pi]} note${noteCounts[pi] === 1 ? '' : 's'} on this page`}
+                className={
+                  compact
+                    ? 'absolute -top-1 right-0 z-10 flex items-center gap-1 rounded-full bg-[#fdf3cf] px-2 py-0.5 font-sans text-[11px] font-semibold text-[#6b5208] shadow-sm'
+                    : 'absolute right-[0.35in] top-[0.35in] z-10 flex items-center gap-1 rounded-full bg-[#fdf3cf] px-2 py-1 font-sans text-[12px] font-semibold text-[#6b5208] shadow-sm transition-transform hover:scale-105'
+                }
+              >
+                <NoteMark />
+                {noteCounts[pi]}
+              </button>
+            )}
+            {pg.map((part) => {
+              const el = part.el
               const i = indexOf.get(el.id) ?? 0
+              const whole = part.start === 0 && part.end >= el.text.length
+              const key = partKey(part)
+              // a piece of a paragraph split across pages edits its slice of the text
+              const piece = whole ? el : { ...el, text: el.text.slice(part.start, part.end) }
               return (
-                <div key={el.id}>
+                <div key={key}>
                   <ElementBlock
-                    element={el}
+                    element={piece}
                     index={i}
                     total={elements.length}
                     isActive={el.id === selectedId}
                     readOnly={readOnly}
-                    autoDetect={autoDetect}
+                    autoDetect={autoDetect && whole}
                     query={query}
-                    registerRef={registerRef}
+                    registerRef={(_id, node) => registerRef(key, node)}
                     onSelect={onSelect}
                     onChangeType={(id, type) => updateElement(id, { type })}
-                    onUpdate={(id, text, type) =>
-                      type ? updateElement(id, { text, type }) : updateElement(id, { text })
-                    }
+                    onUpdate={(id, text, type) => {
+                      let full = text
+                      if (!whole) {
+                        const cur = useApp.getState().projects.find((p) => p.id === useApp.getState().activeProjectId)
+                          ?.elements.find((x) => x.id === id)?.text ?? el.text
+                        full = cur.slice(0, part.start) + text + cur.slice(part.end)
+                      }
+                      if (type) updateElement(id, { text: full, type })
+                      else updateElement(id, { text: full })
+                    }}
                     onInsert={(index, els) => insertElements(index, els)}
                     onRemove={handleRemove}
-                    onFocusNeighbor={handleFocusNeighbor}
+                    onFocusNeighbor={(index, dir, pos) => {
+                      // within a split paragraph, step to its other piece first
+                      const sib = partsOf(el.id).find((p) => (dir < 0 ? p.end === part.start : p.start === part.end))
+                      const node = sib && refs.current.get(partKey(sib))
+                      if (node) setCaret(node, dir < 0 ? 'end' : 'start')
+                      else handleFocusNeighbor(index, dir, pos)
+                    }}
+                    fragStart={part.start}
                   />
                 </div>
               )

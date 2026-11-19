@@ -18,6 +18,9 @@ import { useIsMobile } from '../../hooks/useIsMobile'
 import { useVoiceTyping } from '../../hooks/useVoiceTyping'
 import { MicButton, VoicePanel } from './VoiceTyping'
 import { VoiceNote } from './VoiceNote'
+import { PageNotes } from './PageNotes'
+import { openNotesByPage } from '../../utils/notes'
+import { StickyNote } from 'lucide-react'
 
 export function Editor() {
   const project = useApp((s) => s.projects.find((p) => p.id === s.activeProjectId))
@@ -245,27 +248,63 @@ export function Editor() {
   const pageChunks = useMemo(() => sheetsOf(elements), [elements])
   const pageTotal = Math.max(1, pageChunks.length)
   const curPage = Math.min(pageIdx, pageTotal - 1)
-  // Phone: when the line being edited moves onto another page (it filled
-  // the page), follow it there.
-  const editingId = focus.kind === 'element' ? focus.id : null
-  const editingRef = useRef(editingId)
-  useEffect(() => {
-    editingRef.current = editingId
-  })
-  useEffect(() => {
-    if (!isMobile || !editingRef.current) return
-    const p = pageChunks.findIndex((c) => c.some((el) => el.id === editingRef.current))
-    if (p !== -1) setPageIdx((cur) => (cur === p ? cur : p))
-  }, [isMobile, pageChunks])
-
   useEffect(() => {
     const chunk = isMobile ? pageChunks[curPage] : undefined
-    pageEndRef.current = chunk?.length ? chunk[chunk.length - 1].id : null
-    pageIdsRef.current = chunk ? new Set(chunk.map((e) => e.id)) : null
+    pageEndRef.current = chunk?.length ? chunk[chunk.length - 1].el.id : null
+    pageIdsRef.current = chunk ? new Set(chunk.map((p) => p.el.id)) : null
   }, [isMobile, pageChunks, curPage])
   const pageOf = useCallback(
-    (id: string) => pageChunks.findIndex((c) => c.some((el) => el.id === id)),
+    (id: string) => pageChunks.findIndex((c) => c.some((p) => p.el.id === id)),
     [pageChunks],
+  )
+
+  /* ---------- page notes ---------- */
+  const [rightTab, setRightTab] = useState<'format' | 'notes'>('format')
+  const [notesOpen, setNotesOpen] = useState(false) // phone sheet
+  const [viewPage, setViewPage] = useState(0)
+  const mainRef = useRef<HTMLElement>(null)
+  // Desktop: the page in view is the one under the top of the canvas.
+  useEffect(() => {
+    const m = mainRef.current
+    if (isMobile || !m) return
+    const onScroll = () => {
+      const line = m.getBoundingClientRect().top + Math.min(160, m.clientHeight * 0.3)
+      let cur = 0
+      m.querySelectorAll<HTMLElement>('[data-sheet]').forEach((s, i) => {
+        if (s.getBoundingClientRect().top <= line) cur = i
+      })
+      setViewPage(cur)
+    }
+    onScroll()
+    m.addEventListener('scroll', onScroll, { passive: true })
+    return () => m.removeEventListener('scroll', onScroll)
+  }, [isMobile, pageChunks.length, project?.id])
+  const notesPage = isMobile ? curPage : Math.min(viewPage, pageTotal - 1)
+  const openByPage = useMemo(() => openNotesByPage(project?.pageNotes, pageChunks), [project?.pageNotes, pageChunks])
+  const jumpToPage = useCallback(
+    (pi: number) => {
+      if (isMobile) {
+        setPageIdx(Math.max(0, Math.min(pageTotal - 1, pi)))
+        return
+      }
+      const m = mainRef.current
+      const sheet = m?.querySelector<HTMLElement>(`[data-sheet="${pi}"]`)
+      if (m && sheet) m.scrollTo({ top: m.scrollTop + sheet.getBoundingClientRect().top - m.getBoundingClientRect().top - 16, behavior: 'smooth' })
+    },
+    [isMobile, pageTotal],
+  )
+  const openNotesFor = useCallback(
+    (pi: number) => {
+      if (isMobile) {
+        setPageIdx(pi)
+        setNotesOpen(true)
+        return
+      }
+      setRightCollapsed(false)
+      setRightTab('notes')
+      jumpToPage(pi)
+    },
+    [isMobile, jumpToPage],
   )
 
   // Phone: follow the active search match onto its page.
@@ -321,12 +360,16 @@ export function Editor() {
           onOpenSettings={() => setSettingsOpen(true)}
           onGoHome={goHome}
           onOpenPages={() => setPagesOpen(true)}
+          onOpenNotes={() => setNotesOpen(true)}
         />
 
         <main className="no-scrollbar relative min-h-0 flex-1 touch-pan-y overflow-y-auto overflow-x-hidden px-6 pt-4">
           <Paper
             compact
             pageIndex={curPage}
+            onFollowPage={setPageIdx}
+            noteCounts={openByPage}
+            onOpenNotes={openNotesFor}
             elements={elements}
             selectedId={selectedId}
             readOnly={searchOpen}
@@ -402,6 +445,40 @@ export function Editor() {
           </div>
         )}
 
+        {notesOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-end bg-ink-950/40 dark:bg-black/50"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setNotesOpen(false)
+            }}
+          >
+            <div className="animate-sheet-up pb-safe max-h-[80dvh] w-full overflow-y-auto rounded-t-[24px] bg-white dark:bg-ink-900">
+              <div className="flex justify-center pt-2.5">
+                <span className="h-1.5 w-10 rounded-full bg-ink-200 dark:bg-ink-700" />
+              </div>
+              <div className="flex items-center justify-between px-4 pt-2">
+                <span className="flex items-center gap-1.5 text-[15px] font-semibold text-ink-900 dark:text-ink-50">
+                  <StickyNote size={16} /> Page notes
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setNotesOpen(false)}
+                  className="rounded-full px-3 py-1 text-[13px] font-medium text-ink-500 hover:text-ink-900 dark:text-ink-400"
+                >
+                  Done
+                </button>
+              </div>
+              <PageNotes
+                project={project}
+                sheets={pageChunks}
+                page={curPage}
+                selectedId={focus.kind === 'element' ? focus.id : null}
+                onJumpToPage={(p) => setPageIdx(p)}
+              />
+            </div>
+          </div>
+        )}
+
         {pagesOpen && (
           <div
             className="fixed inset-0 z-50 flex bg-ink-950/40 dark:bg-black/50"
@@ -412,7 +489,7 @@ export function Editor() {
             <div className="animate-fade-slide-in h-full w-[min(85vw,320px)] p-2">
               <Sidebar
                 project={project}
-                activeId={pageChunks[curPage]?.[0]?.id ?? null}
+                activeId={pageChunks[curPage]?.[0]?.el.id ?? null}
                 onJump={(id) => {
                   setPagesOpen(false)
                   const p = pageOf(id)
@@ -484,6 +561,7 @@ export function Editor() {
           ))}
 
         <main
+          ref={mainRef}
           className={cn(
             'relative min-w-0 flex-1 overflow-auto rounded-xl border border-ink-200/70 bg-white dark:border-ink-800 dark:bg-ink-900',
             typewriter ? 'tw-canvas overflow-x-hidden' : 'paper-canvas',
@@ -506,6 +584,8 @@ export function Editor() {
               }
             >
               <Paper
+                noteCounts={openByPage}
+                onOpenNotes={openNotesFor}
                 elements={elements}
                 selectedId={focus.kind === 'element' ? focus.id : null}
                 readOnly={searchOpen}
@@ -537,6 +617,18 @@ export function Editor() {
               onFocus={setFocus}
               onJumpToScene={scrollToId}
               onCollapse={() => setRightCollapsed(true)}
+              tab={rightTab}
+              onTab={setRightTab}
+              openNotes={openByPage[notesPage] ?? 0}
+              notesPanel={
+                <PageNotes
+                  project={project}
+                  sheets={pageChunks}
+                  page={notesPage}
+                  selectedId={focus.kind === 'element' ? focus.id : null}
+                  onJumpToPage={jumpToPage}
+                />
+              }
             />
           ))}
       </div>

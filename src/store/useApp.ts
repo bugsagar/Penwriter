@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Character, FolderInfo, Project, ProjectType, SaveStatus, ScreenplayElement } from '../types'
+import type { Character, FolderInfo, PageNote, Project, ProjectType, SaveStatus, ScreenplayElement } from '../types'
 import {
   loadProjects,
   loadTheme,
@@ -55,6 +55,9 @@ interface AppStore {
   removeElements: (ids: string[]) => void
   setElements: (els: ScreenplayElement[]) => void
   setSceneNote: (sceneId: string, note: string) => void
+  addPageNote: (note: Omit<PageNote, 'id' | 'createdAt' | 'done'>) => string
+  updatePageNote: (id: string, patch: Partial<Pick<PageNote, 'text' | 'done'>>) => void
+  removePageNote: (id: string) => void
   setSavedOnComputer: (id: string, value: boolean) => void
   upsertCharacter: (name: string, notes?: string) => void
   updateCharacter: (id: string, patch: Partial<Character>) => void
@@ -229,6 +232,30 @@ export const useApp = create<AppStore>((set, get) => {
         ...p,
         sceneNotes: { ...p.sceneNotes, [sceneId]: note },
       })),
+    ),
+
+  addPageNote: (note) => {
+    const id = uid('note')
+    set((s) =>
+      mutate(s, (p) => ({
+        ...p,
+        pageNotes: [...(p.pageNotes ?? []), { ...note, id, done: false, createdAt: Date.now() }],
+      })),
+    )
+    return id
+  },
+
+  updatePageNote: (id, patch) =>
+    set((s) =>
+      mutate(s, (p) => ({
+        ...p,
+        pageNotes: (p.pageNotes ?? []).map((n) => (n.id === id ? { ...n, ...patch } : n)),
+      })),
+    ),
+
+  removePageNote: (id) =>
+    set((s) =>
+      mutate(s, (p) => ({ ...p, pageNotes: (p.pageNotes ?? []).filter((n) => n.id !== id) })),
     ),
 
   setSavedOnComputer: (id, value) =>

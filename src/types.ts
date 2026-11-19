@@ -41,6 +41,22 @@ export interface Character {
  * (until the next SCENE_HEADING) belongs to that scene. Scene metadata
  * (notes) is keyed by the heading element's id.
  */
+/**
+ * A note beside a page. Pages reflow as you write, so a note is anchored to
+ * a spot in the text (a line, and a position in it) and shows on whichever
+ * page that spot is on.
+ */
+export interface PageNote {
+  id: string
+  anchorId: string
+  anchorOffset: number
+  /** the page it was written on, used if its line is deleted */
+  pageHint: number
+  text: string
+  done: boolean
+  createdAt: number
+}
+
 export interface Project {
   id: string
   title: string
@@ -51,6 +67,8 @@ export interface Project {
   updatedAt: number
   elements: ScreenplayElement[]
   sceneNotes: Record<string, string>
+  /** Notes kept beside pages, to check later. Never exported. */
+  pageNotes?: PageNote[]
   characters: Character[]
   /** True when the writer chose "Save on computer" — a .reel file on disk. */
   savedOnComputer?: boolean
