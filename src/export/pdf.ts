@@ -60,7 +60,7 @@ function underline(
    scripts — or emoji — are drawn by the browser, which shapes them
    properly, onto a canvas, and placed in the PDF as an image at the same
    spot. Latin text stays real, selectable PDF text. */
-const RASTER_SCALE = 4 // canvas pixels per PDF point (~288 dpi)
+const RASTER_SCALE = 3 // canvas pixels per PDF point (~216 dpi: sharp in print, smaller files)
 
 function canEncode(font: PDFFont, text: string): boolean {
   try {

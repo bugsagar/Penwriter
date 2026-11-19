@@ -20,6 +20,9 @@ interface Props {
   onInsert: (index: number, els: ScreenplayElement[]) => void
   onRemove: (id: string, index: number) => void
   onFocusNeighbor: (index: number, dir: -1 | 1, pos: 'start' | 'end') => void
+  /** When a long paragraph is split across pages: where this piece starts
+   *  in the paragraph's text. */
+  fragStart?: number
 }
 
 function caretTextOffset(div: HTMLDivElement): number {
@@ -85,6 +88,7 @@ export function ElementBlock({
   onInsert,
   onRemove,
   onFocusNeighbor,
+  fragStart = 0,
 }: Props) {
   const divRef = useRef<HTMLDivElement>(null)
   const lastText = useRef(element.text)
@@ -383,6 +387,7 @@ export function ElementBlock({
     <div ref={wrapRef} className={cn('group relative', isActive && 'el-active')} data-index={index}>
       <div
         data-elid={element.id}
+        data-frag-start={fragStart || undefined}
         ref={refCb}
         contentEditable={!readOnly}
         suppressContentEditableWarning

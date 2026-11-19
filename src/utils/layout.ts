@@ -68,35 +68,58 @@ export function textWidth(text: string, sizePt: number = FONT_SIZE): number {
   return measureCtx(sizePt).measureText(text).width * (3 / 4)
 }
 
-export function wrapText(text: string, maxWidthPt: number, sizePt: number = FONT_SIZE): string[] {
-  if (!text.trim()) return ['']
+export interface WrappedLine {
+  text: string
+  /** where the line starts and ends in the original text */
+  start: number
+  end: number
+}
+
+/** Word-wrap like wrapText, keeping each line's position in the original text. */
+export function wrapLines(text: string, maxWidthPt: number, sizePt: number = FONT_SIZE): WrappedLine[] {
+  if (!text.trim()) return [{ text: '', start: 0, end: text.length }]
   // Respect explicit line breaks (e.g. multi-line dialogue via Enter).
-  const paragraphs = text.split('\n')
-  const lines: string[] = []
-  for (const para of paragraphs) {
+  const lines: WrappedLine[] = []
+  let paraStart = 0
+  for (const para of text.split('\n')) {
     if (!para.trim()) {
-      lines.push('')
-      continue
-    }
-    const words = para.replace(/[ \t]+/g, ' ').trim().split(' ')
-    let line = ''
-    for (const word of words) {
-      const trial = line ? `${line} ${word}` : word
-      if (textWidth(trial, sizePt) <= maxWidthPt) {
-        line = trial
-      } else {
-        if (line) lines.push(line)
-        line = word
+      lines.push({ text: '', start: paraStart, end: paraStart + para.length })
+    } else {
+      let line = ''
+      let lineStart = 0
+      let lineEnd = 0
+      for (const m of para.matchAll(/\S+/g)) {
+        const word = m[0]
+        const ws = paraStart + (m.index ?? 0)
+        const trial = line ? `${line} ${word}` : word
+        if (!line || textWidth(trial, sizePt) <= maxWidthPt) {
+          if (!line) lineStart = ws
+          line = trial
+        } else {
+          lines.push({ text: line, start: lineStart, end: lineEnd })
+          line = word
+          lineStart = ws
+        }
+        lineEnd = ws + word.length
       }
+      if (line) lines.push({ text: line, start: lineStart, end: lineEnd })
     }
-    if (line) lines.push(line)
+    paraStart += para.length + 1
   }
-  return lines.length ? lines : ['']
+  return lines.length ? lines : [{ text: '', start: 0, end: text.length }]
+}
+
+export function wrapText(text: string, maxWidthPt: number, sizePt: number = FONT_SIZE): string[] {
+  return wrapLines(text, maxWidthPt, sizePt).map((l) => l.text)
 }
 
 export interface PagedItem {
   element: ScreenplayElement
   lines: string[]
+  /** The part of the element's text on this page (a long paragraph can
+   *  continue onto the next page). */
+  start: number
+  end: number
 }
 
 export interface Page {
@@ -141,6 +164,8 @@ function unitInfo(
   return { end, pt }
 }
 
+const SPLITTABLE = new Set<ElementType>(['ACTION', 'DIALOGUE', 'SHOT'])
+
 export function paginate(elements: ScreenplayElement[]): Page[] {
   const pages: Page[] = []
   let page: Page = { items: [], usedPt: 0 }
@@ -150,14 +175,48 @@ export function paginate(elements: ScreenplayElement[]): Page[] {
     page = { items: [], usedPt: 0 }
   }
 
+  /*
+   * Place an element. Paragraphs that don't fit are split at a line: what
+   * fits stays on this page and the rest continues on the next, keeping at
+   * least two lines on each side (no widows or orphans). Short blocks —
+   * headings, character names, transitions — move to the next page whole.
+   */
   const place = (el: ScreenplayElement) => {
     const size = sizeFor(el.type)
-    const lines = wrapText(el.text, layoutFor(el.type).width, size)
-    if (page.usedPt + elementPt(lines.length, size) > CONTENT_H && page.items.length > 0) {
+    const lines = wrapLines(el.text, layoutFor(el.type).width, size)
+    const canSplit = SPLITTABLE.has(el.type)
+    const push = (a: number, b: number) => {
+      page.items.push({
+        element: el,
+        lines: lines.slice(a, b).map((l) => l.text),
+        start: a === 0 ? 0 : lines[a].start,
+        end: b >= lines.length ? el.text.length : lines[b].start,
+      })
+      page.usedPt += elementPt(b - a, size)
+    }
+    let from = 0
+    for (;;) {
+      const rest = lines.length - from
+      if (page.usedPt + elementPt(rest, size) <= CONTENT_H) {
+        push(from, lines.length)
+        return
+      }
+      const empty = page.items.length === 0
+      if (canSplit) {
+        const room = Math.floor((CONTENT_H - page.usedPt - BLOCK_SPACING) / size)
+        if (empty ? room >= 1 : room >= 2 && rest - room >= 2) {
+          push(from, from + room)
+          from += room
+          newPage()
+          continue
+        }
+      }
+      if (empty) {
+        push(from, lines.length) // taller than a page and can't split
+        return
+      }
       newPage()
     }
-    page.items.push({ element: el, lines })
-    page.usedPt += elementPt(lines.length, size)
   }
 
   let i = 0
@@ -169,7 +228,15 @@ export function paginate(elements: ScreenplayElement[]): Page[] {
     const unit = keepWithNext ? unitInfo(elements, i) : null
 
     if (unit && unit.end > i) {
-      if (unit.pt <= CONTENT_H && page.usedPt + unit.pt > CONTENT_H) {
+      const tail = elements[unit.end]
+      const tailSize = sizeFor(tail.type)
+      const tailLines = wrapText(tail.text, layoutFor(tail.type).width, tailSize).length
+      // a heading or name needs its block to start on the same page; a
+      // splittable block only needs its first two lines here
+      const minPt = SPLITTABLE.has(tail.type) && tailLines > 2
+        ? unit.pt - elementPt(tailLines, tailSize) + elementPt(2, tailSize)
+        : unit.pt
+      if (minPt <= CONTENT_H && page.usedPt + minPt > CONTENT_H && page.items.length > 0) {
         newPage()
       }
       for (let k = i; k <= unit.end; k++) {
@@ -187,12 +254,20 @@ export function paginate(elements: ScreenplayElement[]): Page[] {
   return pages.length ? pages : [{ items: [], usedPt: 0 }]
 }
 
+/** One element's part on one sheet. */
+export interface SheetPart {
+  el: ScreenplayElement
+  start: number
+  end: number
+}
+
 /**
  * The editor's sheets: the same page breaks as the PDF (a page fills, then
- * continues on the next; "New page" forces a break), as lists of elements.
+ * continues on the next — a long paragraph splits across the two; "New
+ * page" forces a break).
  */
-export function sheetsOf(elements: ScreenplayElement[]): ScreenplayElement[][] {
-  const pages = paginate(elements).map((p) => p.items.map((it) => it.element))
+export function sheetsOf(elements: ScreenplayElement[]): SheetPart[][] {
+  const pages = paginate(elements).map((p) => p.items.map((it) => ({ el: it.element, start: it.start, end: it.end })))
   return pages.length ? pages : [[]]
 }
 
