@@ -6,6 +6,12 @@ import type { DocFontFamily, ElementType, Project, ScreenplayElement } from '../
  * The whole script is compressed into the link's #fragment. Browsers never
  * send the fragment to any server (Vercel included), so the script travels
  * only inside the link: anyone who has the link can read it, nobody else.
+ *
+ * A link can also be locked with a 6-digit code: the script in the link is
+ * encrypted (AES-GCM, key stretched from the code with PBKDF2), so the link
+ * alone shows nothing. Six digits stop someone who merely sees the link; a
+ * determined attacker with the link could still try every code offline, so
+ * this is a lock on the door, not a vault.
  */
 
 const TYPES: ElementType[] = ['SCENE_HEADING', 'ACTION', 'CHARACTER', 'DIALOGUE', 'PARENTHETICAL', 'TRANSITION', 'SHOT']
@@ -50,7 +56,41 @@ async function pipe(bytes: Uint8Array, stream: CompressionStream | Decompression
 const canCompress = () => typeof CompressionStream !== 'undefined'
 
 /* ---------- encode / decode ---------- */
-export async function encodeShare(p: Project): Promise<string> {
+export class NeedsCodeError extends Error {
+  constructor() {
+    super('This script is protected with a code.')
+  }
+}
+export class WrongCodeError extends Error {
+  constructor() {
+    super("That code isn't right.")
+  }
+}
+
+const PBKDF2_ROUNDS = 400_000 // ~0.3–1 s per try in a browser: fine for a reader, slows guessing
+
+async function keyFor(code: string, salt: Uint8Array, use: KeyUsage): Promise<CryptoKey> {
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(code), 'PBKDF2', false, ['deriveKey'])
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: salt as BufferSource, iterations: PBKDF2_ROUNDS, hash: 'SHA-256' },
+    base,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    [use],
+  )
+}
+
+/** A random 6-digit code, e.g. "048213". */
+export function randomCode(): string {
+  const n = crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000
+  return String(n).padStart(6, '0')
+}
+
+export function isProtected(code: string): boolean {
+  return code[0] === 'p'
+}
+
+export async function encodeShare(p: Project, lockCode?: string): Promise<string> {
   const payload: Payload = {
     v: 1,
     t: p.title,
@@ -71,12 +111,40 @@ export async function encodeShare(p: Project): Promise<string> {
   }
   const json = new TextEncoder().encode(JSON.stringify(payload))
   // 'z' = deflate-compressed, 'j' = plain (very old browsers)
-  return canCompress() ? `z${toB64url(await pipe(json, new CompressionStream('deflate-raw')))}` : `j${toB64url(json)}`
+  const kind = canCompress() ? 'z' : 'j'
+  const body = kind === 'z' ? await pipe(json, new CompressionStream('deflate-raw')) : json
+  if (!lockCode) return `${kind}${toB64url(body)}`
+
+  // 'p' = locked: salt(16) · iv(12) · AES-GCM( kind byte · body )
+  const salt = crypto.getRandomValues(new Uint8Array(16))
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const plain = new Uint8Array(body.length + 1)
+  plain[0] = kind.charCodeAt(0)
+  plain.set(body, 1)
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await keyFor(lockCode, salt, 'encrypt'), plain))
+  const out = new Uint8Array(16 + 12 + ct.length)
+  out.set(salt, 0)
+  out.set(iv, 16)
+  out.set(ct, 28)
+  return `p${toB64url(out)}`
 }
 
-export async function decodeShare(code: string): Promise<SharedScript> {
-  const kind = code[0]
+export async function decodeShare(code: string, lockCode?: string): Promise<SharedScript> {
+  let kind = code[0]
   let bytes = fromB64url(code.slice(1))
+  if (kind === 'p') {
+    if (!lockCode) throw new NeedsCodeError()
+    const salt = bytes.subarray(0, 16)
+    const iv = bytes.subarray(16, 28)
+    let plain: Uint8Array
+    try {
+      plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv as BufferSource }, await keyFor(lockCode, salt, 'decrypt'), bytes.subarray(28) as BufferSource))
+    } catch {
+      throw new WrongCodeError()
+    }
+    kind = String.fromCharCode(plain[0])
+    bytes = plain.subarray(1)
+  }
   if (kind === 'z') bytes = await pipe(bytes, new DecompressionStream('deflate-raw'))
   else if (kind !== 'j') throw new Error('This share link is not a Pen link.')
   const p = JSON.parse(new TextDecoder().decode(bytes)) as Payload
@@ -101,6 +169,36 @@ export function shareCodeFromLocation(): string | null {
   return m ? m[1] : null
 }
 
-export async function createShareLink(p: Project): Promise<string> {
-  return `${location.origin}/#share=${await encodeShare(p)}`
+export async function createShareLink(p: Project, lockCode?: string): Promise<string> {
+  return `${location.origin}/#share=${await encodeShare(p, lockCode)}`
+}
+
+/** The clean link for a share code (no "just opened" flags). */
+export function linkFor(code: string): string {
+  return `${location.origin}/#share=${code}`
+}
+
+/*
+ * The writer opening their own locked link shouldn't have to type the code:
+ * it's handed to the new tab through this browser's storage, once.
+ */
+const UNLOCK_KEY = 'reel.share.unlock'
+export function rememberUnlock(code: string, lockCode: string) {
+  try {
+    localStorage.setItem(UNLOCK_KEY, JSON.stringify({ tail: code.slice(-24), lockCode, at: Date.now() }))
+  } catch {
+    /* storage unavailable */
+  }
+}
+export function takeUnlock(code: string): string | null {
+  try {
+    const raw = localStorage.getItem(UNLOCK_KEY)
+    if (!raw) return null
+    const v = JSON.parse(raw) as { tail: string; lockCode: string; at: number }
+    if (v.tail !== code.slice(-24) || Date.now() - v.at > 120_000) return null
+    localStorage.removeItem(UNLOCK_KEY)
+    return v.lockCode
+  } catch {
+    return null
+  }
 }

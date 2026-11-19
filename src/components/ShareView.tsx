@@ -1,14 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import { Check, ChevronLeft, ChevronRight, CopyPlus, Download, Link2, Minus, Plus, X } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Link2, Lock, Minus, Plus, X } from 'lucide-react'
 import logoUrl from '../assets/logo.svg'
-import { useApp } from '../store/useApp'
-import { decodeShare, type SharedScript } from '../utils/share'
+import { decodeShare, isProtected, linkFor, takeUnlock, WrongCodeError, type SharedScript } from '../utils/share'
 import { paginate } from '../utils/layout'
 import { fontStackFor, FONT_SIZE_DEFAULT } from '../utils/fonts'
-import { emptyProject } from '../utils/sample'
-import { exportPdf } from '../export/pdf'
-import { uid } from '../utils/id'
 import { cn } from './ui'
 
 /*
@@ -30,19 +26,65 @@ export function ShareView({ code, fresh, onExit }: { code: string; fresh: boolea
   const [copied, setCopied] = useState(false)
   const [banner, setBanner] = useState(fresh)
   const canvasRef = useRef<HTMLDivElement>(null)
-  const importProject = useApp((s) => s.importProject)
-  const openEditor = useApp((s) => s.openEditor)
+  // locked links: the reader types the 6-digit code first
+  const [needCode, setNeedCode] = useState(false)
+  const [codeInput, setCodeInput] = useState('')
+  const [codeError, setCodeError] = useState<string | null>(null)
+  const [unlocking, setUnlocking] = useState(false)
+  const [ownCode, setOwnCode] = useState<string | null>(null) // the writer opening their own link
+
+  const open = useCallback(
+    async (lock?: string) => {
+      try {
+        const s = await decodeShare(code, lock)
+        setScript(s)
+        setNeedCode(false)
+        document.title = `${s.title || 'Untitled'} — Pen`
+      } catch (e) {
+        if (e instanceof WrongCodeError) {
+          setCodeError(e.message)
+          setCodeInput('')
+          setNeedCode(true)
+        } else setError((e as Error).message || 'This link could not be opened.')
+      }
+    },
+    [code],
+  )
 
   useEffect(() => {
-    decodeShare(code)
-      .then((s) => {
-        setScript(s)
-        document.title = `${s.title || 'Untitled'} — Pen`
-      })
-      .catch((e: Error) => setError(e.message || 'This link could not be opened.'))
-  }, [code])
+    if (!isProtected(code)) {
+      void open()
+      return
+    }
+    const mine = takeUnlock(code)
+    if (mine) {
+      setOwnCode(mine)
+      void open(mine)
+    } else {
+      document.title = 'Protected script — Pen' // nothing about the script before the code
+      setNeedCode(true)
+    }
+  }, [code, open])
+
+  const unlock = async (value: string) => {
+    if (value.length !== 6 || unlocking) return
+    setUnlocking(true)
+    setCodeError(null)
+    await open(value)
+    setUnlocking(false)
+  }
 
   const pages = useMemo(() => (script ? paginate(script.elements) : []), [script])
+  // a title page first, like the PDF: the script's name and who wrote it
+  const hasTitlePage = !!script && !!(script.title.trim() || script.author.trim())
+  const sheetCount = pages.length + (hasTitlePage ? 1 : 0)
+  // what the counter says for sheet i
+  const sheetLabel = (i: number, short = false) =>
+    hasTitlePage && i === 0
+      ? 'Title page'
+      : short
+        ? `${i + (hasTitlePage ? 0 : 1)} / ${pages.length}`
+        : `Page ${i + (hasTitlePage ? 0 : 1)} of ${Math.max(1, pages.length)}`
   const z = fit ? fitZoom : zoom
 
   // Fit: the page fills the canvas width, never larger than 100%.
@@ -77,10 +119,10 @@ export function ShareView({ code, fresh, onExit }: { code: string; fresh: boolea
   const goTo = useCallback(
     (i: number) => {
       const el = canvasRef.current
-      const target = el?.querySelectorAll<HTMLElement>('[data-share-page]')[Math.max(0, Math.min(pages.length - 1, i))]
+      const target = el?.querySelectorAll<HTMLElement>('[data-share-page]')[Math.max(0, Math.min(sheetCount - 1, i))]
       if (el && target) el.scrollTo({ top: el.scrollTop + target.getBoundingClientRect().top - el.getBoundingClientRect().top - 24, behavior: 'smooth' })
     },
-    [pages.length],
+    [sheetCount],
   )
 
   const stepZoom = useCallback(
@@ -113,46 +155,68 @@ export function ShareView({ code, fresh, onExit }: { code: string; fresh: boolea
     return () => window.removeEventListener('keydown', onKey)
   }, [goTo, page, stepZoom])
 
+  // always the clean link (never this tab's "just opened" flag)
   const copyLink = async () => {
+    const url = linkFor(code)
     try {
-      await navigator.clipboard.writeText(location.href)
+      await navigator.clipboard.writeText(url)
       setCopied(true)
       setTimeout(() => setCopied(false), 1800)
     } catch {
-      window.prompt('Copy this link:', location.href)
-    }
-  }
-
-  const toProject = () => {
-    const base = emptyProject()
-    return {
-      ...base,
-      id: uid('proj'),
-      title: script?.title || 'Untitled Screenplay',
-      author: script?.author ?? '',
-      elements: (script?.elements ?? []).map((el) => ({ ...el, id: uid('el') })),
-      settings: { ...base.settings, fontFamily: script?.fontFamily ?? base.settings.fontFamily, fontSizePt: script?.fontSizePt ?? base.settings.fontSizePt },
-    }
-  }
-
-  const makeCopy = () => {
-    if (!script) return
-    const id = importProject(toProject())
-    onExit()
-    openEditor(id)
-  }
-
-  const downloadPdf = async () => {
-    if (!script) return
-    try {
-      await exportPdf(toProject())
-    } catch (err) {
-      window.alert(`Sorry — the PDF didn't work.\n\n${err instanceof Error ? err.message : String(err)}`)
+      window.prompt('Copy this link:', url)
     }
   }
 
   const iconBtn =
     'flex h-8 w-8 items-center justify-center rounded-md text-white/75 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent'
+
+  if (needCode && !script) {
+    return (
+      <div className="flex h-dvh flex-col items-center justify-center bg-[#1e1e1e] px-6 text-white">
+        <div className="w-full max-w-[340px] rounded-[22px] border border-white/[0.08] bg-[#2c2c2c] p-6 text-center shadow-2xl">
+          <span className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-[#e8734e]/15 text-[#f0a35e]">
+            <Lock size={20} />
+          </span>
+          <h1 className="text-[17px] font-semibold">This script is protected</h1>
+          <p className="mt-1 text-[13px] text-white/60">Enter the 6-digit code you were given.</p>
+          <form
+            className="mt-5"
+            onSubmit={(e) => {
+              e.preventDefault()
+              void unlock(codeInput)
+            }}
+          >
+            <input
+              autoFocus
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]*"
+              maxLength={6}
+              value={codeInput}
+              aria-label="6-digit code"
+              onChange={(e) => {
+                const v = e.target.value.replace(/\D/g, '').slice(0, 6)
+                setCodeInput(v)
+                setCodeError(null)
+                if (v.length === 6) void unlock(v)
+              }}
+              placeholder="••••••"
+              className="w-full rounded-xl border border-white/10 bg-[#1e1e1e] py-3 text-center font-mono text-[28px] tracking-[0.45em] text-white outline-none placeholder:text-white/20 focus:border-[#e8734e]"
+            />
+            {codeError && <p className="mt-2 text-[12.5px] text-[#ff8a7a]">{codeError}</p>}
+            <button
+              type="submit"
+              disabled={codeInput.length !== 6 || unlocking}
+              className="mt-4 h-11 w-full rounded-full bg-[#e8734e] text-[14px] font-semibold text-white transition-colors hover:bg-[#d9653f] disabled:opacity-40"
+            >
+              {unlocking ? 'Unlocking…' : 'Open script'}
+            </button>
+          </form>
+        </div>
+        <img src={logoUrl} alt="Pen" className="mt-6 h-6 w-auto opacity-50" />
+      </div>
+    )
+  }
 
   if (error) {
     return (
@@ -190,9 +254,9 @@ export function ShareView({ code, fresh, onExit }: { code: string; fresh: boolea
             <ChevronLeft size={17} />
           </button>
           <span className="min-w-[92px] text-center text-[12.5px] tabular-nums text-white/80">
-            Page {Math.min(page + 1, Math.max(1, pages.length))} of {Math.max(1, pages.length)}
+            {sheetLabel(Math.min(page, sheetCount - 1))}
           </span>
-          <button type="button" className={iconBtn} aria-label="Next page" disabled={page >= pages.length - 1} onClick={() => goTo(page + 1)}>
+          <button type="button" className={iconBtn} aria-label="Next page" disabled={page >= sheetCount - 1} onClick={() => goTo(page + 1)}>
             <ChevronRight size={17} />
           </button>
         </div>
@@ -215,12 +279,6 @@ export function ShareView({ code, fresh, onExit }: { code: string; fresh: boolea
               <Plus size={15} />
             </button>
           </div>
-          <button type="button" className={iconBtn} title="Download PDF" aria-label="Download PDF" onClick={downloadPdf}>
-            <Download size={16} />
-          </button>
-          <button type="button" className={iconBtn} title="Make a copy in Pen" aria-label="Make a copy in Pen" onClick={makeCopy}>
-            <CopyPlus size={16} />
-          </button>
           <button
             type="button"
             onClick={copyLink}
@@ -236,7 +294,14 @@ export function ShareView({ code, fresh, onExit }: { code: string; fresh: boolea
       {banner && (
         <div className="flex shrink-0 items-center gap-3 border-b border-white/[0.08] bg-[#252525] px-4 py-2 text-[12.5px] text-white/80">
           <span className="flex-1">
-            This is your script&apos;s view-only link. Anyone you send it to can read it — they can&apos;t change your copy.
+            {ownCode ? (
+              <>
+                Your locked view-only link. Readers need the code{' '}
+                <b className="font-mono tracking-[0.15em] text-white">{ownCode}</b> — send it separately from the link.
+              </>
+            ) : (
+              <>This is your script&apos;s view-only link. Anyone you send it to can read it — they can&apos;t change your copy.</>
+            )}
           </span>
           <button type="button" onClick={copyLink} className="shrink-0 font-semibold text-[#f0a35e] hover:text-[#ffbe85]">
             {copied ? 'Copied' : 'Copy link'}
@@ -254,6 +319,26 @@ export function ShareView({ code, fresh, onExit }: { code: string; fresh: boolea
         ) : (
           // w-max: when zoomed wider than the screen, every edge stays scrollable
           <div className="flex w-max min-w-full flex-col items-center gap-6 px-3 py-6 sm:py-10">
+            {hasTitlePage && (
+              <div
+                data-share-page
+                className="relative flex shrink-0 flex-col items-center bg-white text-[#1a1a1a] shadow-[0_2px_8px_rgb(0_0_0/0.35),0_18px_50px_-12px_rgb(0_0_0/0.55)]"
+                style={{ zoom: z, width: '8.5in', height: '11in', padding: '1in', fontFamily: docFont } as CSSProperties}
+              >
+                {/* same spots as the PDF's title page */}
+                <div className="flex w-full flex-col items-center text-center" style={{ marginTop: '3.9in' }}>
+                  <p className="font-bold uppercase" style={{ fontSize: (script?.title.length ?? 0) > 24 ? '22pt' : '30pt', lineHeight: 1.15 }}>
+                    {script?.title.trim() || 'Untitled'}
+                  </p>
+                  {script?.author.trim() && (
+                    <>
+                      <p className="mt-[0.35in]" style={{ fontSize: '14pt' }}>written by</p>
+                      <p className="mt-[0.12in] uppercase" style={{ fontSize: '16pt' }}>{script.author.trim()}</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
             {pages.map((p, pi) => (
               <div
                 key={pi}
@@ -299,16 +384,16 @@ export function ShareView({ code, fresh, onExit }: { code: string; fresh: boolea
         )}
 
         {/* phone: page pill at the bottom */}
-        {script && pages.length > 1 && (
+        {script && sheetCount > 1 && (
           <div className="pb-safe pointer-events-none sticky bottom-3 flex justify-center sm:hidden">
             <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-[#2c2c2c]/95 px-1 py-1 shadow-lg backdrop-blur">
               <button type="button" className={cn(iconBtn, 'rounded-full')} aria-label="Previous page" disabled={page <= 0} onClick={() => goTo(page - 1)}>
                 <ChevronLeft size={17} />
               </button>
               <span className="min-w-[56px] text-center text-[12.5px] tabular-nums text-white/85">
-                {page + 1} / {pages.length}
+                {hasTitlePage && page === 0 ? 'Title' : sheetLabel(page, true)}
               </span>
-              <button type="button" className={cn(iconBtn, 'rounded-full')} aria-label="Next page" disabled={page >= pages.length - 1} onClick={() => goTo(page + 1)}>
+              <button type="button" className={cn(iconBtn, 'rounded-full')} aria-label="Next page" disabled={page >= sheetCount - 1} onClick={() => goTo(page + 1)}>
                 <ChevronRight size={17} />
               </button>
             </div>

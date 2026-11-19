@@ -18,7 +18,9 @@ import {
   Undo2,
   Redo2,
 } from 'lucide-react'
+import { useState } from 'react'
 import { useApp } from '../../store/useApp'
+import { ShareDialog } from './ShareDialog'
 import { exportPdf } from '../../export/pdf'
 import { exportText, exportFountain } from '../../export/text'
 import { saveProjects } from '../../utils/storage'
@@ -134,25 +136,10 @@ export function TopBar({
     }
   }
 
-  // Share: open the view-only link in a new tab and copy it. The tab is
-  // opened first, inside the click, so pop-up blockers allow it.
-  const share = async () => {
-    const tab = window.open('', '_blank')
-    try {
-      const { createShareLink } = await import('../../utils/share')
-      const url = await createShareLink(project)
-      try {
-        await navigator.clipboard.writeText(url)
-      } catch {
-        /* the viewer has its own Copy link */
-      }
-      if (tab) tab.location.href = `${url}&new=1`
-      else window.location.href = `${url}&new=1`
-    } catch (err) {
-      tab?.close()
-      window.alert(`Sorry — the share link couldn't be made.\n\n${err instanceof Error ? err.message : String(err)}`)
-    }
-  }
+  // Share: asks open vs. 6-digit code first (ShareDialog).
+  const [shareOpen, setShareOpen] = useState(false)
+  const share = () => setShareOpen(true)
+  const shareDialog = <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} project={project} />
 
   const saveNow = () => {
     saveProjects(useApp.getState().projects)
@@ -250,7 +237,7 @@ export function TopBar({
                 label="Share view-only link"
                 onClick={() => {
                   close()
-                  void share()
+                  share()
                 }}
               />
               <div className="my-1 border-t border-ink-100 dark:border-ink-800" />
@@ -273,6 +260,7 @@ export function TopBar({
             </div>
           )}
         </Dropdown>
+        {shareDialog}
       </header>
     )
   }
@@ -301,6 +289,7 @@ export function TopBar({
 
   return (
     <header className="shrink-0 rounded-t-xl border-b border-ink-200/70 bg-white dark:border-ink-800 dark:bg-ink-900">
+      {shareDialog}
       {/* Row 1 — workspace / search / status (like screenshot) */}
       <div className="flex h-12 items-center gap-2 px-3">
         <button
