@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, Copy, ExternalLink, Globe, Lock, RefreshCw, X } from 'lucide-react'
+import { Check, Copy, ExternalLink, Globe, Lock, RefreshCw, Share2, X } from 'lucide-react'
 import type { Project } from '../../types'
 import { createShareLink, randomCode, rememberUnlock } from '../../utils/share'
 import { cn } from '../ui'
@@ -39,9 +39,24 @@ export function ShareDialog({ open, onClose, project }: { open: boolean; onClose
     }
   }
 
+  // Phones (and the installed app) handle a pre-opened tab badly — it often
+  // stays blank — and won't copy after the encryption step. There, the result
+  // offers the phone's own share sheet and plain tap-to-copy instead.
+  const isPhone =
+    typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches || window.innerWidth < 768)
+  const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+
+  const nativeShare = async (data: ShareData) => {
+    try {
+      await navigator.share(data)
+    } catch {
+      /* cancelled */
+    }
+  }
+
   const create = async () => {
-    // open the tab inside the click so pop-up blockers allow it
-    const tab = window.open('', '_blank')
+    // desktop: open the tab inside the click so pop-up blockers allow it
+    const tab = isPhone ? null : window.open('', '_blank')
     setBusy(true)
     setError(null)
     try {
@@ -50,12 +65,14 @@ export function ShareDialog({ open, onClose, project }: { open: boolean; onClose
       const shareCode = url.split('#share=')[1]
       if (lock) rememberUnlock(shareCode, lock) // you won't be asked for your own code
       setResult({ url, code: lock })
-      try {
-        await navigator.clipboard.writeText(url)
-        setCopied('link')
-        setTimeout(() => setCopied((c) => (c === 'link' ? null : c)), 1600)
-      } catch {
-        /* the Copy button is right there */
+      if (!isPhone) {
+        try {
+          await navigator.clipboard.writeText(url)
+          setCopied('link')
+          setTimeout(() => setCopied((c) => (c === 'link' ? null : c)), 1600)
+        } catch {
+          /* the Copy button is right there */
+        }
       }
       if (tab) tab.location.href = `${url}&new=1`
     } catch (err) {
@@ -190,12 +207,32 @@ export function ShareDialog({ open, onClose, project }: { open: boolean; onClose
                     {copied === 'code' ? 'Copied' : 'Copy code'}
                   </button>
                 </div>
+                {isPhone && canNativeShare && (
+                  <button
+                    type="button"
+                    onClick={() => nativeShare({ text: `Code to open “${project.title || 'the script'}” in Pen: ${result.code}` })}
+                    className="mt-2 flex h-9 w-full items-center justify-center gap-1.5 rounded-full border border-ink-200 text-[13px] font-medium text-ink-800 dark:border-ink-700 dark:text-ink-100"
+                  >
+                    <Share2 size={14} />
+                    Send code…
+                  </button>
+                )}
                 <p className="mt-2 text-[12px] leading-snug text-ink-500 dark:text-ink-400">
                   Send the code separately from the link — for example, the link by email and the code by message.
                 </p>
               </>
             )}
 
+            {isPhone && canNativeShare && (
+              <button
+                type="button"
+                onClick={() => nativeShare({ title: project.title || 'Screenplay', text: 'Read my script in Pen', url: result.url })}
+                className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#e8734e] text-[14.5px] font-semibold text-white"
+              >
+                <Share2 size={16} />
+                Send link…
+              </button>
+            )}
             <div className="mt-4 flex gap-2">
               <a
                 href={`${result.url}&new=1`}

@@ -1,3 +1,4 @@
+import { deflateSync, inflateSync } from 'fflate'
 import type { DocFontFamily, ElementType, Project, ScreenplayElement } from '../types'
 
 /*
@@ -48,12 +49,19 @@ function fromB64url(s: string): Uint8Array {
   return out
 }
 
-async function pipe(bytes: Uint8Array, stream: CompressionStream | DecompressionStream): Promise<Uint8Array> {
-  const res = new Response(new Blob([bytes as BlobPart]).stream().pipeThrough(stream))
-  return new Uint8Array(await res.arrayBuffer())
-}
+/* Raw deflate via fflate, so links open on every browser — including
+   iPhones before iOS 16.4, which lack CompressionStream. The bytes are the
+   same 'deflate-raw' format, so links made earlier still open. */
+const deflate = (b: Uint8Array) => deflateSync(b, { level: 9 })
+const inflate = (b: Uint8Array) => inflateSync(b)
 
-const canCompress = () => typeof CompressionStream !== 'undefined'
+/** Locked links need Web Crypto, which browsers only offer on https pages. */
+function cryptoOrThrow(): SubtleCrypto {
+  if (!globalThis.crypto?.subtle) {
+    throw new Error('Code-protected links need a secure (https) page. Open Pen from its https address and try again.')
+  }
+  return crypto.subtle
+}
 
 /* ---------- encode / decode ---------- */
 export class NeedsCodeError extends Error {
@@ -70,8 +78,9 @@ export class WrongCodeError extends Error {
 const PBKDF2_ROUNDS = 400_000 // ~0.3–1 s per try in a browser: fine for a reader, slows guessing
 
 async function keyFor(code: string, salt: Uint8Array, use: KeyUsage): Promise<CryptoKey> {
-  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(code), 'PBKDF2', false, ['deriveKey'])
-  return crypto.subtle.deriveKey(
+  const subtle = cryptoOrThrow()
+  const base = await subtle.importKey('raw', new TextEncoder().encode(code), 'PBKDF2', false, ['deriveKey'])
+  return subtle.deriveKey(
     { name: 'PBKDF2', salt: salt as BufferSource, iterations: PBKDF2_ROUNDS, hash: 'SHA-256' },
     base,
     { name: 'AES-GCM', length: 256 },
@@ -110,9 +119,9 @@ export async function encodeShare(p: Project, lockCode?: string): Promise<string
     }),
   }
   const json = new TextEncoder().encode(JSON.stringify(payload))
-  // 'z' = deflate-compressed, 'j' = plain (very old browsers)
-  const kind = canCompress() ? 'z' : 'j'
-  const body = kind === 'z' ? await pipe(json, new CompressionStream('deflate-raw')) : json
+  // 'z' = deflate-compressed ('j' = plain, read for older links)
+  const kind = 'z'
+  const body = deflate(json)
   if (!lockCode) return `${kind}${toB64url(body)}`
 
   // 'p' = locked: salt(16) · iv(12) · AES-GCM( kind byte · body )
@@ -145,7 +154,7 @@ export async function decodeShare(code: string, lockCode?: string): Promise<Shar
     kind = String.fromCharCode(plain[0])
     bytes = plain.subarray(1)
   }
-  if (kind === 'z') bytes = await pipe(bytes, new DecompressionStream('deflate-raw'))
+  if (kind === 'z') bytes = inflate(bytes)
   else if (kind !== 'j') throw new Error('This share link is not a Pen link.')
   const p = JSON.parse(new TextDecoder().decode(bytes)) as Payload
   if (p.v !== 1 || !Array.isArray(p.e)) throw new Error('This share link is damaged or from a newer Pen.')
