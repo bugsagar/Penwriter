@@ -1,7 +1,7 @@
 // Ezuth service worker: makes the app installable and usable offline.
 // Pages are network-first (so updates show up), built assets cache-first.
-const CACHE = 'pen-v3'
-const SHELL = ['/', '/manifest.webmanifest', '/icons/icon-192.png?v=3', '/icons/icon-512.png?v=3', '/fav.png']
+const CACHE = 'pen-v4'
+const SHELL = ['/', '/manifest.webmanifest', '/icons/icon-192.png?v=3', '/icons/icon-512.png?v=3', '/fav.png?v=3', '/fav.svg?v=3']
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)))
