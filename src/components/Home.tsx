@@ -38,7 +38,7 @@ export function Home() {
       <div className="flex min-h-0 flex-1 flex-col bg-paper-white p-[14px]">
       {/* Hero */}
       <section
-        className="flex flex-1 flex-col rounded-[14px] bg-cover bg-center px-6 pb-10 pt-5 text-center text-white"
+        className="flex flex-1 flex-col rounded-[14px] bg-cover bg-center max-sm:bg-[position:31%_center] px-6 pb-10 pt-5 text-center text-white"
         style={{ backgroundImage: `url(${bgUrl})`, backgroundColor: '#779bc1' }}
       >
         {/* Top navigation — inside the hero */}
@@ -54,17 +54,17 @@ export function Home() {
             </button>
           </div>
         </header>
-        <div className="mx-auto flex w-full max-w-[1200px] flex-1 flex-col items-center justify-center">
+        <div className="mx-auto flex w-full max-w-[1200px] flex-1 flex-col items-center justify-center max-sm:pb-24">
           <h1 className="mx-auto max-w-3xl text-[44px] font-semibold leading-[0.95] tracking-[-0.04em] sm:text-display sm:leading-[0.9]">
             Write scripts
             <br />
             at shoot speed.
           </h1>
-          <p className="mx-auto mt-5 max-w-[480px] text-body-lg font-normal leading-[1.49] tracking-[-0.01em] text-white/90">
-            Ezuth formats your screenplay as you type — slug lines, dialogue, and
-            page counts handled, so you stay in the story.
+          <p className="mx-auto mt-5 max-sm:mt-3 max-w-[480px] text-body-lg font-normal leading-[1.49] tracking-[-0.01em] text-white/90">
+            You write the story.
+            <br className="sm:hidden" /> Ezuth handles the formatting.
           </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-8 max-sm:mt-5 flex flex-wrap items-center justify-center gap-3">
             <PrimaryPill onClick={() => openDashboard()}>Start writing for free</PrimaryPill>
           </div>
         </div>
