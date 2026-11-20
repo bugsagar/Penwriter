@@ -24,6 +24,14 @@ export function supportsFilePicker(): boolean {
   return typeof window !== 'undefined' && 'showSaveFilePicker' in window
 }
 
+/** Keep a file link when its script gets a new id (see importProject). */
+export function moveFileHandle(from: string, to: string): void {
+  const h = handles.get(from)
+  if (!h) return
+  handles.delete(from)
+  handles.set(to, h)
+}
+
 export function hasFileHandle(id: string): boolean {
   return handles.has(id)
 }

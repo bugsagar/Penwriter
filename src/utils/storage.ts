@@ -113,15 +113,18 @@ export function clearLocalProjects(): void {
 }
 
 /*
- * Scripts saved to "My computer" never go to the cloud. This browser keeps
- * its own copy of them so they stay in the list here (and survive the file
- * link being forgotten on refresh); other devices open them with "Open a file".
+ * Scripts saved to "My computer" never go to the cloud. This browser keeps a
+ * copy of them so they stay in the list here (and survive the file link being
+ * forgotten on refresh) — separately for each signed-in account, so another
+ * person signing in on the same browser doesn't see them. Other devices open
+ * them with "Open a file".
  */
 const COMPUTER_KEY = 'reel.computer.v1'
+const computerKey = (userId: string) => `${COMPUTER_KEY}.${userId}`
 
-export function loadComputerProjects(): Project[] {
+function readList(key: string): Project[] {
   try {
-    const raw = localStorage.getItem(COMPUTER_KEY)
+    const raw = localStorage.getItem(key)
     const list = raw ? (JSON.parse(raw) as Project[]) : []
     return Array.isArray(list) ? list.map((p) => ({ ...p, savedOnComputer: true })) : []
   } catch {
@@ -129,12 +132,43 @@ export function loadComputerProjects(): Project[] {
   }
 }
 
-export function saveComputerProjects(projects: Project[]): void {
+export function loadComputerProjects(userId: string): Project[] {
+  return readList(computerKey(userId))
+}
+
+export function saveComputerProjects(userId: string, projects: Project[]): void {
   try {
     const mine = projects.filter((p) => p.savedOnComputer)
-    if (mine.length) localStorage.setItem(COMPUTER_KEY, JSON.stringify(mine))
-    else localStorage.removeItem(COMPUTER_KEY)
+    if (mine.length) localStorage.setItem(computerKey(userId), JSON.stringify(mine))
+    else localStorage.removeItem(computerKey(userId))
   } catch (err) {
     console.error('Failed to keep computer scripts', err)
+  }
+}
+
+export function clearComputerProjects(userId: string): void {
+  try {
+    localStorage.removeItem(computerKey(userId))
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+/**
+ * Scripts this browser kept with no account attached: from before cloud
+ * saving, and computer scripts from before they were tied to an account.
+ * Only moved into an account when the writer says so.
+ */
+export function loadUnclaimedProjects(): Project[] {
+  const seen = new Set<string>()
+  return [...loadProjects(), ...readList(COMPUTER_KEY)].filter((p) => !seen.has(p.id) && !!seen.add(p.id))
+}
+
+export function clearUnclaimedProjects(): void {
+  clearLocalProjects()
+  try {
+    localStorage.removeItem(COMPUTER_KEY)
+  } catch {
+    /* storage unavailable */
   }
 }

@@ -25,3 +25,5 @@ create policy "read own scripts"   on public.projects for select using (auth.uid
 create policy "add own scripts"    on public.projects for insert with check (auth.uid() = user_id);
 create policy "change own scripts" on public.projects for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "delete own scripts" on public.projects for delete using (auth.uid() = user_id);
+
+-- Size and count limits: see limits.sql (run it after this file).

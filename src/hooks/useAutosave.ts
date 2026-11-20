@@ -14,7 +14,8 @@ export function saveNow() {
     saveProjects(projects)
     markSaved()
   } else if (authStatus === 'signedIn') {
-    saveComputerProjects(projects)
+    const uid = useApp.getState().user?.id
+    if (uid) saveComputerProjects(uid, projects)
     void syncNow()
   }
 }
@@ -47,7 +48,8 @@ export function useAutosave() {
         saveProjects(projects)
         if (useApp.getState().saveStatus === 'unsaved') markSaved()
       } else {
-        saveComputerProjects(projects)
+        const uid = useApp.getState().user?.id
+        if (uid) saveComputerProjects(uid, projects)
       }
     }, 700)
     return () => clearTimeout(t)
@@ -57,7 +59,10 @@ export function useAutosave() {
     const flush = () => {
       const { authStatus: a, projects: all } = useApp.getState()
       if (a === 'local') saveProjects(all)
-      else if (a === 'signedIn') saveComputerProjects(all)
+      else if (a === 'signedIn') {
+        const uid = useApp.getState().user?.id
+        if (uid) saveComputerProjects(uid, all)
+      }
     }
     const onHide = () => {
       if (document.visibilityState === 'hidden') flush()

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useApp } from './store/useApp'
 import { useAutosave, useTheme } from './hooks/useAutosave'
 import { useCloud } from './hooks/useCloud'
-import { SignInScreen } from './components/Account'
+import { ClaimDrafts, SignInScreen } from './components/Account'
 import { loadSession } from './utils/storage'
 import { Home } from './components/Home'
 import { Dashboard } from './components/Dashboard'
@@ -50,5 +50,10 @@ export default function App() {
   if (authStatus === 'loading' && (view !== 'home' || resumeTo !== 'home')) return <SignInScreen loading />
   if (authStatus === 'signedOut' && view !== 'home') return <SignInScreen />
 
-  return view === 'editor' ? <Editor /> : view === 'dashboard' ? <Dashboard /> : <Home />
+  return (
+    <>
+      {view === 'editor' ? <Editor /> : view === 'dashboard' ? <Dashboard /> : <Home />}
+      <ClaimDrafts />
+    </>
+  )
 }

@@ -13,6 +13,7 @@ import {
 import { normalizeElements } from '../utils/scenes'
 import { emptyProject, sampleProject } from '../utils/sample'
 import { uid } from '../utils/id'
+import { moveFileHandle } from '../utils/files'
 import { cloudEnabled, type CloudUser } from '../utils/cloud'
 
 /** loading: checking sign-in · signedOut · signedIn (cloud) · local: no cloud set up, browser storage */
@@ -47,6 +48,8 @@ interface AppStore {
   user: CloudUser | null
   /** Last cloud save problem (e.g. offline); cleared on the next good save. */
   cloudError: string | null
+  /** Scripts found in this browser with no account attached, awaiting "move them?" */
+  unclaimed: Project[]
 
   /** After sign-in: the writer's scripts from the cloud, and where they were. */
   signedIn: (user: CloudUser, projects: Project[]) => void
@@ -136,6 +139,7 @@ export const useApp = create<AppStore>((set, get) => {
     authStatus: cloudEnabled ? 'loading' : 'local',
     user: null,
     cloudError: null,
+    unclaimed: [],
 
     signedIn: (user, list) => {
       const s = loadSession()
@@ -156,7 +160,7 @@ export const useApp = create<AppStore>((set, get) => {
     },
 
     signedOut: () =>
-      set({ user: null, authStatus: 'signedOut', projects: [], activeProjectId: null, view: 'home', undoStack: [], redoStack: [] }),
+      set({ user: null, authStatus: 'signedOut', projects: [], unclaimed: [], activeProjectId: null, view: 'home', undoStack: [], redoStack: [] }),
 
     setCloudError: (cloudError) => set({ cloudError }),
 
@@ -186,15 +190,22 @@ export const useApp = create<AppStore>((set, get) => {
     return project.id
   },
 
-  importProject: (project) => {
-    set((s) => {
-      const exists = s.projects.some((p) => p.id === project.id)
-      return {
-        projects: exists
-          ? s.projects.map((p) => (p.id === project.id ? project : p))
-          : [project, ...s.projects],
-      }
-    })
+  importProject: (incoming) => {
+    let project = incoming
+    const existing = get().projects.find((p) => p.id === incoming.id)
+    // Re-opening a computer script's file refreshes it in place. But a file
+    // with the id of a cloud script (an old export) opens as its own copy —
+    // replacing would turn the cloud script into a computer one and delete it
+    // from the cloud.
+    if (existing && !existing.savedOnComputer) {
+      project = { ...incoming, id: uid('proj') }
+      moveFileHandle(incoming.id, project.id)
+    }
+    set((s) => ({
+      projects: s.projects.some((p) => p.id === project.id)
+        ? s.projects.map((p) => (p.id === project.id ? project : p))
+        : [project, ...s.projects],
+    }))
     return project.id
   },
 

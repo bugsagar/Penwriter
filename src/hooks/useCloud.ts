@@ -1,7 +1,12 @@
 import { useEffect } from 'react'
 import { useApp } from '../store/useApp'
 import { cloud, deleteProjects, fetchProjects, toCloudUser, upsertProjects } from '../utils/cloud'
-import { clearLocalProjects, loadComputerProjects, loadProjects, saveComputerProjects } from '../utils/storage'
+import {
+  clearUnclaimedProjects,
+  loadComputerProjects,
+  loadUnclaimedProjects,
+  saveComputerProjects,
+} from '../utils/storage'
 import type { Project } from '../types'
 
 /*
@@ -20,7 +25,10 @@ let chain: Promise<void> = Promise.resolve()
 let retry: ReturnType<typeof setTimeout> | undefined
 
 async function pushChanges(): Promise<void> {
-  if (!userId) return
+  // Only while one writer's scripts are fully loaded and on screen: never
+  // during sign-in / account switch (the list may still be the last writer's).
+  const st = useApp.getState()
+  if (!userId || st.authStatus !== 'signedIn' || st.user?.id !== userId) return
   const uid = userId
   const { projects } = useApp.getState()
   // "My computer" scripts never go up; switching one to computer removes it from the cloud
@@ -59,6 +67,7 @@ export function syncNow(): Promise<void> {
 
 async function onUser(user: ReturnType<typeof toCloudUser> | null) {
   const store = useApp.getState()
+  if (user?.id !== userId) clearTimeout(retry) // a retry belongs to the previous writer
   if (!user) {
     userId = null
     synced.clear()
@@ -72,29 +81,48 @@ async function onUser(user: ReturnType<typeof toCloudUser> | null) {
     const remote = await fetchProjects()
     synced.clear()
     for (const p of remote) synced.set(p.id, p)
-    // move scripts from before cloud saving, then forget them in the browser
-    // ("My computer" ones stay on this computer instead of going up)
     const ids = new Set(remote.map((p) => p.id))
-    const old = loadProjects().filter((p) => !ids.has(p.id))
-    const local = old.filter((p) => !p.savedOnComputer)
-    const computer = [...loadComputerProjects(), ...old.filter((p) => p.savedOnComputer)].filter(
-      (p, i, a) => !ids.has(p.id) && a.findIndex((q) => q.id === p.id) === i,
-    )
-    if (local.length) {
-      await upsertProjects(user.id, local)
-      for (const p of local) synced.set(p.id, p)
-    }
-    saveComputerProjects(computer)
-    clearLocalProjects()
-    const all = [...remote, ...local, ...computer].sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
+    const computer = loadComputerProjects(user.id).filter((p) => !ids.has(p.id))
+    const all = [...remote, ...computer].sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
     useApp.getState().signedIn(user, all)
+    // Scripts left in this browser without an account (from before cloud
+    // saving) are never moved on their own — this browser may be shared.
+    // The writer is asked first (ClaimDrafts).
+    const unclaimed = loadUnclaimedProjects().filter((p) => !ids.has(p.id) && !computer.some((c) => c.id === p.id))
+    useApp.setState({ unclaimed })
   } catch (err) {
     console.error('Loading scripts failed', err)
     // still show this computer's scripts (and never save their list as empty)
-    useApp.setState({ authStatus: 'signedIn', user, projects: loadComputerProjects() })
+    useApp.setState({ authStatus: 'signedIn', user, projects: loadComputerProjects(user.id) })
     useApp.getState().setCloudError('Couldn’t load your scripts. Check your connection and reload.')
     userId = null // don't save over the cloud with an empty list
   }
+}
+
+/**
+ * The writer chose what to do with scripts this browser kept without an
+ * account: 'move' adds them to their account (computer ones stay on this
+ * computer under their account), 'delete' removes them from this browser,
+ * 'leave' keeps them here unclaimed (asked again next sign-in).
+ */
+export async function resolveUnclaimed(choice: 'move' | 'delete' | 'leave'): Promise<void> {
+  const { unclaimed, user } = useApp.getState()
+  if (choice === 'leave' || !user) {
+    useApp.setState({ unclaimed: [] })
+    return
+  }
+  if (choice === 'move') {
+    const cloudOnes = unclaimed.filter((p) => !p.savedOnComputer)
+    const computerOnes = unclaimed.filter((p) => p.savedOnComputer)
+    await upsertProjects(user.id, cloudOnes)
+    for (const p of cloudOnes) synced.set(p.id, p)
+    const { projects } = useApp.getState()
+    const next = [...unclaimed, ...projects].sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
+    saveComputerProjects(user.id, [...computerOnes, ...projects])
+    useApp.setState({ projects: next })
+  }
+  clearUnclaimedProjects()
+  useApp.setState({ unclaimed: [] })
 }
 
 export function useCloud() {

@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { Cloud, LogOut } from 'lucide-react'
 import { useApp } from '../store/useApp'
 import { signInWithGoogle, signOut } from '../utils/cloud'
-import { saveSession } from '../utils/storage'
-import { syncNow } from '../hooks/useCloud'
+import { clearComputerProjects, saveSession } from '../utils/storage'
+import { resolveUnclaimed, syncNow } from '../hooks/useCloud'
 import { Dropdown, MenuItem } from './ui'
 import logoUrl from '../assets/logo.svg'
 
@@ -54,18 +54,130 @@ export function AccountButton() {
               {cloudError ?? 'Scripts are saved to your account.'}
             </p>
           </div>
-          <MenuItem
-            icon={<LogOut size={15} />}
-            label="Sign out"
-            onClick={async () => {
-              close()
-              await syncNow() // don't lose the last few words
-              await signOut()
-            }}
-          />
+          <SignOutItem close={close} />
         </div>
       )}
     </Dropdown>
+  )
+}
+
+/**
+ * Sign out. If this browser holds "My computer" scripts for this account,
+ * ask whether to remove them from this browser too (the files stay).
+ */
+function SignOutItem({ close }: { close: () => void }) {
+  const [asking, setAsking] = useState(false)
+  const computerCount = useApp((s) => s.projects.filter((p) => p.savedOnComputer).length)
+  const out = async (removeLocal: boolean) => {
+    close()
+    const uid = useApp.getState().user?.id
+    await syncNow() // don't lose the last few words
+    if (removeLocal && uid) clearComputerProjects(uid)
+    saveSession({ view: 'home', activeProjectId: null })
+    await signOut()
+  }
+  if (!asking) {
+    return (
+      <MenuItem
+        icon={<LogOut size={15} />}
+        label="Sign out"
+        onClick={() => (computerCount > 0 ? setAsking(true) : void out(false))}
+      />
+    )
+  }
+  return (
+    <div className="border-t border-ink-100 px-3 pb-2 pt-2.5 dark:border-ink-800">
+      <p className="text-[12.5px] leading-snug text-ink-700 dark:text-ink-200">
+        Remove your {computerCount} “My computer” script{computerCount === 1 ? '' : 's'} from this browser? Do this on a
+        shared computer. The .reel.json files on the computer are not touched.
+      </p>
+      <div className="mt-2 flex gap-1.5">
+        <button
+          type="button"
+          onClick={() => void out(true)}
+          className="h-8 flex-1 rounded-full bg-ink-950 text-[12.5px] font-semibold text-white dark:bg-ink-50 dark:text-ink-950"
+        >
+          Remove & sign out
+        </button>
+        <button
+          type="button"
+          onClick={() => void out(false)}
+          className="h-8 flex-1 rounded-full border border-ink-200 text-[12.5px] font-medium text-ink-800 dark:border-ink-700 dark:text-ink-100"
+        >
+          Keep & sign out
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Scripts this browser kept without an account (from before cloud saving).
+ * The browser may be shared, so they only join the signed-in account if the
+ * writer says they're theirs.
+ */
+export function ClaimDrafts() {
+  const unclaimed = useApp((s) => s.unclaimed)
+  const user = useApp((s) => s.user)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  if (!unclaimed.length || !user) return null
+  const go = async (choice: 'move' | 'delete' | 'leave') => {
+    setBusy(true)
+    setError(null)
+    try {
+      await resolveUnclaimed(choice)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Couldn’t move them. Check your connection and try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-ink-950/40 backdrop-blur-[2px] sm:items-center sm:p-6 dark:bg-black/55">
+      <div role="dialog" aria-modal="true" aria-label="Scripts found in this browser" className="animate-sheet-up pb-safe w-full rounded-t-[24px] bg-white p-5 shadow-lift sm:max-w-[440px] sm:rounded-[24px] dark:bg-ink-900">
+        <h2 className="font-serif text-[22px] leading-tight text-ink-950 dark:text-ink-50">Scripts found in this browser</h2>
+        <p className="mt-1 text-[13px] text-ink-500 dark:text-ink-400">
+          {unclaimed.length === 1 ? 'This script was' : `These ${unclaimed.length} scripts were`} saved here before you signed in. Are
+          they yours?
+        </p>
+        <ul className="mt-3 max-h-40 space-y-1 overflow-auto rounded-xl bg-ink-50 px-3 py-2 dark:bg-ink-950">
+          {unclaimed.map((p) => (
+            <li key={p.id} className="truncate text-[13.5px] text-ink-800 dark:text-ink-100">
+              {p.title || 'Untitled'}
+              {p.savedOnComputer && <span className="text-ink-400"> · My computer</span>}
+            </li>
+          ))}
+        </ul>
+        {error && <p className="mt-2 text-[12.5px] text-red-600 dark:text-red-400">{error}</p>}
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void go('move')}
+          className="mt-4 h-11 w-full rounded-full bg-ink-950 text-[14px] font-semibold text-white disabled:opacity-60 dark:bg-ink-50 dark:text-ink-950"
+        >
+          {busy ? 'Moving…' : `Yes, add to ${user.email}`}
+        </button>
+        <div className="mt-2 flex gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void go('leave')}
+            className="h-10 flex-1 rounded-full border border-ink-200 text-[13px] font-medium text-ink-800 dark:border-ink-700 dark:text-ink-100"
+          >
+            Not mine, leave them
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void go('delete')}
+            className="h-10 flex-1 rounded-full border border-ink-200 text-[13px] font-medium text-red-600 dark:border-ink-700 dark:text-red-400"
+          >
+            Delete from browser
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 

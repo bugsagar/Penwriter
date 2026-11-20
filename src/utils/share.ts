@@ -1,4 +1,4 @@
-import { deflateSync, inflateSync } from 'fflate'
+import { Inflate, deflateSync } from 'fflate'
 import type { DocFontFamily, ElementType, Project, ScreenplayElement } from '../types'
 
 /*
@@ -53,7 +53,44 @@ function fromB64url(s: string): Uint8Array {
    iPhones before iOS 16.4, which lack CompressionStream. The bytes are the
    same 'deflate-raw' format, so links made earlier still open. */
 const deflate = (b: Uint8Array) => deflateSync(b, { level: 9 })
-const inflate = (b: Uint8Array) => inflateSync(b)
+
+/** Links are opened from anywhere, so their size is capped before and after unpacking. */
+const MAX_LINK_CHARS = 4_000_000
+const MAX_SCRIPT_BYTES = 16_000_000
+
+function inflate(b: Uint8Array): Uint8Array {
+  const chunks: Uint8Array[] = []
+  let total = 0
+  const inf = new Inflate((chunk) => {
+    total += chunk.length
+    if (total > MAX_SCRIPT_BYTES) throw new Error('This share link is too large to open.')
+    chunks.push(chunk)
+  })
+  inf.push(b, true)
+  const out = new Uint8Array(total)
+  let at = 0
+  for (const c of chunks) {
+    out.set(c, at)
+    at += c.length
+  }
+  return out
+}
+
+const ALIGNS = new Set(['left', 'center', 'right', 'justify'])
+
+/** Only known formatting, with the right types, from an untrusted link. */
+function cleanExtras(x: unknown): Extras {
+  if (!x || typeof x !== 'object') return {}
+  const v = x as Record<string, unknown>
+  const out: Extras = {}
+  if (typeof v.bold === 'boolean') out.bold = v.bold
+  if (v.italic === true) out.italic = true
+  if (v.underline === true) out.underline = true
+  if (v.pageBreak === true) out.pageBreak = true
+  if (typeof v.align === 'string' && ALIGNS.has(v.align)) out.align = v.align as Extras['align']
+  if (typeof v.color === 'string' && /^#[0-9a-f]{3,8}$/i.test(v.color)) out.color = v.color
+  return out
+}
 
 /** Locked links need Web Crypto, which browsers only offer on https pages. */
 function cryptoOrThrow(): SubtleCrypto {
@@ -139,6 +176,7 @@ export async function encodeShare(p: Project, lockCode?: string): Promise<string
 }
 
 export async function decodeShare(code: string, lockCode?: string): Promise<SharedScript> {
+  if (code.length > MAX_LINK_CHARS) throw new Error('This share link is too large to open.')
   let kind = code[0]
   let bytes = fromB64url(code.slice(1))
   if (kind === 'p') {
@@ -161,14 +199,17 @@ export async function decodeShare(code: string, lockCode?: string): Promise<Shar
   return {
     title: String(p.t ?? ''),
     author: String(p.a ?? ''),
-    fontFamily: p.f,
+    fontFamily: typeof p.f === 'string' ? p.f : undefined,
     fontSizePt: typeof p.s === 'number' ? p.s : undefined,
-    elements: p.e.map(([t, text, x], i) => ({
-      id: `s${i}`,
-      type: TYPES[t] ?? 'ACTION',
-      text: String(text ?? ''),
-      ...(x ?? {}),
-    })),
+    elements: p.e.map((row, i) => {
+      const [t, text, x] = Array.isArray(row) ? row : []
+      return {
+        ...cleanExtras(x),
+        id: `s${i}`,
+        type: (typeof t === 'number' && TYPES[t]) || 'ACTION',
+        text: String(text ?? ''),
+      }
+    }),
   }
 }
 
