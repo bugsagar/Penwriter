@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Film, Clapperboard, Tv, HardDrive, Globe, X, FolderOpen, Check } from 'lucide-react'
+import { Film, Clapperboard, Tv, HardDrive, Cloud, X, FolderOpen, Check } from 'lucide-react'
 import { useApp } from '../store/useApp'
 import { cn } from './ui'
 import { supportsFilePicker, pickSaveFile, downloadProjectFile } from '../utils/files'
@@ -183,8 +183,8 @@ export function NewScreenplayDialog({
                 {
                   on: !onComputer,
                   set: () => setOnComputer(false),
-                  icon: <Globe size={18} />,
-                  title: 'This browser',
+                  icon: <Cloud size={18} />,
+                  title: 'Cloud',
                   hint: 'Private to this device and browser',
                 },
               ].map((o, i) => (
