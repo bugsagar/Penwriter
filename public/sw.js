@@ -1,7 +1,7 @@
 // Pen service worker: makes the app installable and usable offline.
 // Pages are network-first (so updates show up), built assets cache-first.
-const CACHE = 'pen-v2'
-const SHELL = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/fav.png']
+const CACHE = 'pen-v3'
+const SHELL = ['/', '/manifest.webmanifest', '/icons/icon-192.png?v=3', '/icons/icon-512.png?v=3', '/fav.png']
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)))
