@@ -178,14 +178,14 @@ export function NewScreenplayDialog({
                   set: () => setOnComputer(true),
                   icon: <HardDrive size={18} />,
                   title: 'My computer',
-                  hint: 'A .reel.json file you control, never uploaded',
+                  hint: 'Also keeps a .reel.json file on this computer',
                 },
                 {
                   on: !onComputer,
                   set: () => setOnComputer(false),
                   icon: <Cloud size={18} />,
                   title: 'Cloud',
-                  hint: 'Private to this device and browser',
+                  hint: 'Saved to your account, on every device',
                 },
               ].map((o, i) => (
                 <button
