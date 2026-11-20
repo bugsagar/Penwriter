@@ -30,9 +30,10 @@ import { Dropdown, IconButton, MenuItem, cn } from '../ui'
 import type { Project, SaveStatus } from '../../types'
 
 export function SaveIndicator({ status }: { status: SaveStatus }) {
-  const cloud = useApp((s) => s.authStatus === 'signedIn')
+  const onComputer = useApp((s) => !!s.projects.find((p) => p.id === s.activeProjectId)?.savedOnComputer)
+  const cloud = useApp((s) => s.authStatus === 'signedIn') && !onComputer
   const cloudError = useApp((s) => s.cloudError)
-  if (cloudError) {
+  if (cloudError && !onComputer) {
     return (
       <span title={cloudError} className="flex items-center gap-1.5 text-[11.5px] text-ink-500 dark:text-ink-400">
         <CloudOff size={12} className="text-brass-500" />
@@ -59,7 +60,7 @@ export function SaveIndicator({ status }: { status: SaveStatus }) {
   return (
     <span className="flex items-center gap-1.5 text-[11.5px] text-ink-400 dark:text-ink-500">
       {cloud ? <Cloud size={12} className="text-emerald-500" /> : <Check size={12} className="text-emerald-500" />}
-      {cloud ? 'Saved to cloud' : 'Saved'}
+      {cloud ? 'Saved to cloud' : onComputer ? 'Saved on computer' : 'Saved'}
     </span>
   )
 }

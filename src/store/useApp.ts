@@ -19,6 +19,8 @@ import { cloudEnabled, type CloudUser } from '../utils/cloud'
 export type AuthStatus = 'loading' | 'signedOut' | 'signedIn' | 'local'
 
 interface CreateInput {
+  /** Saved only as a file on this computer — never uploaded to the cloud. */
+  onComputer?: boolean
   title: string
   author: string
   description: string
@@ -179,6 +181,7 @@ export const useApp = create<AppStore>((set, get) => {
     project.author = input.author.trim()
     project.description = input.description.trim()
     project.type = input.type
+    if (input.onComputer) project.savedOnComputer = true
     set((s) => ({ projects: [project, ...s.projects] }))
     return project.id
   },

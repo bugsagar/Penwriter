@@ -193,7 +193,7 @@ function ProjectRow({ project, onOpen }: { project: Project; onOpen: () => void 
               />
               <ConfirmItem
                 icon={<Trash2 size={14} />}
-                label="Delete"
+                label="Delete script"
                 onConfirm={() => {
                   deleteProject(project.id)
                   close()

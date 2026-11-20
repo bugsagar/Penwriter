@@ -216,7 +216,7 @@ export function ConfirmItem({
     return (
       <div className="flex items-center gap-1 px-2 py-1.5">
         <span className="flex-1 pl-1 text-[12.5px] text-red-600 dark:text-red-400">
-          Delete {label.toLowerCase()}?
+          {label}?
         </span>
         <button
           type="button"

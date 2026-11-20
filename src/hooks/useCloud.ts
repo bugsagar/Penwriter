@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useApp } from '../store/useApp'
 import { cloud, deleteProjects, fetchProjects, toCloudUser, upsertProjects } from '../utils/cloud'
-import { clearLocalProjects, loadProjects } from '../utils/storage'
+import { clearLocalProjects, loadComputerProjects, loadProjects, saveComputerProjects } from '../utils/storage'
 import type { Project } from '../types'
 
 /*
@@ -23,8 +23,10 @@ async function pushChanges(): Promise<void> {
   if (!userId) return
   const uid = userId
   const { projects } = useApp.getState()
-  const changed = projects.filter((p) => synced.get(p.id) !== p)
-  const live = new Set(projects.map((p) => p.id))
+  // "My computer" scripts never go up; switching one to computer removes it from the cloud
+  const cloudOnes = projects.filter((p) => !p.savedOnComputer)
+  const changed = cloudOnes.filter((p) => synced.get(p.id) !== p)
+  const live = new Set(cloudOnes.map((p) => p.id))
   const gone = [...synced.keys()].filter((id) => !live.has(id))
   if (changed.length === 0 && gone.length === 0) {
     if (useApp.getState().projects === projects) useApp.getState().markSaved()
@@ -71,18 +73,25 @@ async function onUser(user: ReturnType<typeof toCloudUser> | null) {
     synced.clear()
     for (const p of remote) synced.set(p.id, p)
     // move scripts from before cloud saving, then forget them in the browser
+    // ("My computer" ones stay on this computer instead of going up)
     const ids = new Set(remote.map((p) => p.id))
-    const local = loadProjects().filter((p) => !ids.has(p.id))
+    const old = loadProjects().filter((p) => !ids.has(p.id))
+    const local = old.filter((p) => !p.savedOnComputer)
+    const computer = [...loadComputerProjects(), ...old.filter((p) => p.savedOnComputer)].filter(
+      (p, i, a) => !ids.has(p.id) && a.findIndex((q) => q.id === p.id) === i,
+    )
     if (local.length) {
       await upsertProjects(user.id, local)
       for (const p of local) synced.set(p.id, p)
     }
+    saveComputerProjects(computer)
     clearLocalProjects()
-    const all = [...remote, ...local].sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
+    const all = [...remote, ...local, ...computer].sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
     useApp.getState().signedIn(user, all)
   } catch (err) {
     console.error('Loading scripts failed', err)
-    useApp.setState({ authStatus: 'signedIn', user })
+    // still show this computer's scripts (and never save their list as empty)
+    useApp.setState({ authStatus: 'signedIn', user, projects: loadComputerProjects() })
     useApp.getState().setCloudError('Couldn’t load your scripts. Check your connection and reload.')
     userId = null // don't save over the cloud with an empty list
   }

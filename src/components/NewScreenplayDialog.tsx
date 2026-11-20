@@ -33,7 +33,7 @@ export function NewScreenplayDialog({
 }) {
   const createProject = useApp((s) => s.createProject)
   const openEditor = useApp((s) => s.openEditor)
-  const setSavedOnComputer = useApp((s) => s.setSavedOnComputer)
+  const deleteProject = useApp((s) => s.deleteProject)
 
   const [title, setTitle] = useState('')
   const [author, setAuthor] = useState('')
@@ -51,16 +51,18 @@ export function NewScreenplayDialog({
   if (!open) return null
 
   const submit = async () => {
-    const id = createProject({ title, author, description, type })
+    const id = createProject({ title, author, description, type, onComputer })
     if (onComputer) {
       // A file on your computer that only you control — never uploaded.
       const proj = useApp.getState().projects.find((p) => p.id === id)
       if (proj) {
         if (supportsFilePicker()) {
-          if (await pickSaveFile(proj)) setSavedOnComputer(id, true)
+          if (!(await pickSaveFile(proj))) {
+            deleteProject(id) // picker cancelled: nothing made, dialog stays open
+            return
+          }
         } else {
           downloadProjectFile(proj)
-          setSavedOnComputer(id, true)
         }
       }
     }
@@ -178,7 +180,7 @@ export function NewScreenplayDialog({
                   set: () => setOnComputer(true),
                   icon: <HardDrive size={18} />,
                   title: 'My computer',
-                  hint: 'Also keeps a .reel.json file on this computer',
+                  hint: 'A .reel.json file on this computer, never uploaded',
                 },
                 {
                   on: !onComputer,

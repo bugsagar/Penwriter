@@ -111,3 +111,30 @@ export function clearLocalProjects(): void {
     /* storage unavailable */
   }
 }
+
+/*
+ * Scripts saved to "My computer" never go to the cloud. This browser keeps
+ * its own copy of them so they stay in the list here (and survive the file
+ * link being forgotten on refresh); other devices open them with "Open a file".
+ */
+const COMPUTER_KEY = 'reel.computer.v1'
+
+export function loadComputerProjects(): Project[] {
+  try {
+    const raw = localStorage.getItem(COMPUTER_KEY)
+    const list = raw ? (JSON.parse(raw) as Project[]) : []
+    return Array.isArray(list) ? list.map((p) => ({ ...p, savedOnComputer: true })) : []
+  } catch {
+    return []
+  }
+}
+
+export function saveComputerProjects(projects: Project[]): void {
+  try {
+    const mine = projects.filter((p) => p.savedOnComputer)
+    if (mine.length) localStorage.setItem(COMPUTER_KEY, JSON.stringify(mine))
+    else localStorage.removeItem(COMPUTER_KEY)
+  } catch (err) {
+    console.error('Failed to keep computer scripts', err)
+  }
+}
