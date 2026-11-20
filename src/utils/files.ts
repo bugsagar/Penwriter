@@ -34,7 +34,7 @@ export const FILE_FORMAT_VERSION = 1
 export const FILE_EXT = '.reel.json'
 
 const FILE_TYPES = [
-  { description: 'Pen screenplay', accept: { 'application/json': [FILE_EXT] } },
+  { description: 'Ezuth screenplay', accept: { 'application/json': [FILE_EXT] } },
 ]
 
 function serialize(project: Project): string {
@@ -57,7 +57,7 @@ const ELEMENT_TYPES = new Set<string>([
 
 export class FileFormatError extends Error {}
 
-const NOT_OURS = `This isn't a Pen screenplay. Only ${FILE_EXT} files saved from Pen can be opened.`
+const NOT_OURS = `This isn't an Ezuth screenplay. Only ${FILE_EXT} files saved from Ezuth can be opened.`
 
 /**
  * Parse and validate a screenplay file. Accepts files carrying our format
@@ -77,7 +77,7 @@ export function parseProjectFile(text: string, fileName: string): Project {
   const legacy = d.format === undefined && fileName.toLowerCase().endsWith(FILE_EXT)
   if (!marked && !legacy) throw new FileFormatError(NOT_OURS)
   if (marked && typeof d.formatVersion === 'number' && d.formatVersion > FILE_FORMAT_VERSION) {
-    throw new FileFormatError('This screenplay was saved by a newer version of Pen.')
+    throw new FileFormatError('This screenplay was saved by a newer version of Ezuth.')
   }
 
   const els = d.elements

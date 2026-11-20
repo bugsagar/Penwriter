@@ -12,7 +12,7 @@ import type { VoiceTyping } from '../../hooks/useVoiceTyping'
    pill closes back to where it started.
 
    ── IN PEN: DICTATION, NOT A RECORDER ───────────────────
-   Pen turns speech into script text, so there is no clip to
+   Ezuth turns speech into script text, so there is no clip to
    play back: letting go puts the words in at the cursor, and
    the original's clip/playhead phase is left out. A quick tap
    (shorter than MIN_MS) latches it on instead, for hands-free

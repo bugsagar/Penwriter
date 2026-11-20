@@ -4,7 +4,7 @@ import { useApp } from '../store/useApp'
 import { FILE_EXT, FileFormatError, pickOpenFile, readProjectFile } from '../utils/files'
 
 /**
- * "Open a screenplay file" — only Pen's own .reel.json format is accepted.
+ * "Open a screenplay file" — only Ezuth's own .reel.json format is accepted.
  * Returns an `open()` trigger plus the hidden input + error toast to render.
  */
 export function useOpenScreenplay() {

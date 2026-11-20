@@ -210,7 +210,7 @@ export function ShareDialog({ open, onClose, project }: { open: boolean; onClose
                 {isPhone && canNativeShare && (
                   <button
                     type="button"
-                    onClick={() => nativeShare({ text: `Code to open “${project.title || 'the script'}” in Pen: ${result.code}` })}
+                    onClick={() => nativeShare({ text: `Code to open “${project.title || 'the script'}” in Ezuth: ${result.code}` })}
                     className="mt-2 flex h-9 w-full items-center justify-center gap-1.5 rounded-full border border-ink-200 text-[13px] font-medium text-ink-800 dark:border-ink-700 dark:text-ink-100"
                   >
                     <Share2 size={14} />
@@ -226,7 +226,7 @@ export function ShareDialog({ open, onClose, project }: { open: boolean; onClose
             {isPhone && canNativeShare && (
               <button
                 type="button"
-                onClick={() => nativeShare({ title: project.title || 'Screenplay', text: 'Read my script in Pen', url: result.url })}
+                onClick={() => nativeShare({ title: project.title || 'Screenplay', text: 'Read my script in Ezuth', url: result.url })}
                 className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#e8734e] text-[14.5px] font-semibold text-white"
               >
                 <Share2 size={16} />

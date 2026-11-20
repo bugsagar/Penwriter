@@ -39,7 +39,7 @@ export function ShareView({ code, fresh, onExit }: { code: string; fresh: boolea
         const s = await decodeShare(code, lock)
         setScript(s)
         setNeedCode(false)
-        document.title = `${s.title || 'Untitled'} — Pen`
+        document.title = `${s.title || 'Untitled'} — Ezuth`
       } catch (e) {
         if (e instanceof WrongCodeError) {
           setCodeError(e.message)
@@ -61,7 +61,7 @@ export function ShareView({ code, fresh, onExit }: { code: string; fresh: boolea
       setOwnCode(mine)
       void open(mine)
     } else {
-      document.title = 'Protected script — Pen' // nothing about the script before the code
+      document.title = 'Protected script — Ezuth' // nothing about the script before the code
       setNeedCode(true)
     }
   }, [code, open])
@@ -213,7 +213,7 @@ export function ShareView({ code, fresh, onExit }: { code: string; fresh: boolea
             </button>
           </form>
         </div>
-        <img src={logoUrl} alt="Pen" className="mt-6 h-6 w-auto opacity-50" />
+        <img src={logoUrl} alt="Ezuth" className="mt-6 h-6 w-auto opacity-50" />
       </div>
     )
   }
@@ -221,10 +221,10 @@ export function ShareView({ code, fresh, onExit }: { code: string; fresh: boolea
   if (error) {
     return (
       <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-[#1e1e1e] px-6 text-center text-white">
-        <img src={logoUrl} alt="Pen" className="h-10 w-auto opacity-90" />
+        <img src={logoUrl} alt="Ezuth" className="h-10 w-auto opacity-90" />
         <p className="max-w-sm text-[15px] text-white/80">{error}</p>
         <button type="button" onClick={onExit} className="rounded-full bg-white px-4 py-2 text-[13.5px] font-semibold text-[#1e1e1e]">
-          Open Pen
+          Open Ezuth
         </button>
       </div>
     )
@@ -237,8 +237,8 @@ export function ShareView({ code, fresh, onExit }: { code: string; fresh: boolea
     <div className="flex h-dvh flex-col bg-[#1e1e1e] text-white">
       {/* ---- the one bar ---- */}
       <header className="pt-safe flex h-12 shrink-0 items-center gap-2 border-b border-white/[0.08] bg-[#2c2c2c] px-2 sm:px-3">
-        <button type="button" onClick={onExit} title="Open Pen" className="flex h-8 shrink-0 items-center rounded-md px-1.5 hover:bg-white/10">
-          <img src={logoUrl} alt="Pen" className="h-6 w-auto" />
+        <button type="button" onClick={onExit} title="Open Ezuth" className="flex h-8 shrink-0 items-center rounded-md px-1.5 hover:bg-white/10">
+          <img src={logoUrl} alt="Ezuth" className="h-6 w-auto" />
         </button>
         <span className="h-5 w-px shrink-0 bg-white/15" />
         <div className="min-w-0 flex-1 sm:flex-none">
@@ -410,7 +410,7 @@ export function ShareView({ code, fresh, onExit }: { code: string; fresh: boolea
         }}
         className="pointer-events-auto fixed bottom-4 left-4 hidden rounded-full bg-[#2c2c2c]/90 px-3 py-1.5 text-[11.5px] text-white/60 shadow-lg backdrop-blur hover:text-white sm:block"
       >
-        Made with <span className="font-semibold text-white/85">Pen</span>
+        Made with <span className="font-semibold text-white/85">Ezuth</span>
       </a>
     </div>
   )

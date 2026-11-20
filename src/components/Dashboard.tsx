@@ -319,13 +319,13 @@ export function Dashboard() {
             <ActionCard
               icon={<FolderOpen size={17} />}
               title="Open a file"
-              hint="Pen .reel.json scripts"
+              hint="Ezuth .reel.json scripts"
               onClick={openFile}
             />
             <ActionCard
               icon={<Play size={16} />}
               title="Try the sample"
-              hint="See Pen in action"
+              hint="See Ezuth in action"
               onClick={openSample}
             />
           </div>

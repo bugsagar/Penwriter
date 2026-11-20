@@ -48,9 +48,9 @@ export function Home() {
               type="button"
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="flex shrink-0 items-center"
-              title="Reel"
+              title="Ezuth"
             >
-              <img src={logoUrl} alt="Reel" className="h-15 w-auto" />
+              <img src={logoUrl} alt="Ezuth" className="h-15 w-auto" />
             </button>
           </div>
         </header>
@@ -61,7 +61,7 @@ export function Home() {
             at shoot speed.
           </h1>
           <p className="mx-auto mt-5 max-w-[480px] text-body-lg font-normal leading-[1.49] tracking-[-0.01em] text-white/90">
-            Reel formats your screenplay as you type — slug lines, dialogue, and
+            Ezuth formats your screenplay as you type — slug lines, dialogue, and
             page counts handled, so you stay in the story.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">

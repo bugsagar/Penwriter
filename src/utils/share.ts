@@ -58,7 +58,7 @@ const inflate = (b: Uint8Array) => inflateSync(b)
 /** Locked links need Web Crypto, which browsers only offer on https pages. */
 function cryptoOrThrow(): SubtleCrypto {
   if (!globalThis.crypto?.subtle) {
-    throw new Error('Code-protected links need a secure (https) page. Open Pen from its https address and try again.')
+    throw new Error('Code-protected links need a secure (https) page. Open Ezuth from its https address and try again.')
   }
   return crypto.subtle
 }
@@ -155,9 +155,9 @@ export async function decodeShare(code: string, lockCode?: string): Promise<Shar
     bytes = plain.subarray(1)
   }
   if (kind === 'z') bytes = inflate(bytes)
-  else if (kind !== 'j') throw new Error('This share link is not a Pen link.')
+  else if (kind !== 'j') throw new Error('This share link is not an Ezuth link.')
   const p = JSON.parse(new TextDecoder().decode(bytes)) as Payload
-  if (p.v !== 1 || !Array.isArray(p.e)) throw new Error('This share link is damaged or from a newer Pen.')
+  if (p.v !== 1 || !Array.isArray(p.e)) throw new Error('This share link is damaged or from a newer Ezuth.')
   return {
     title: String(p.t ?? ''),
     author: String(p.a ?? ''),

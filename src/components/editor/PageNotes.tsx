@@ -151,7 +151,7 @@ export function PageNotes({
         </div>
       )}
 
-      <p className="text-[11px] text-ink-400 dark:text-ink-500">Notes stay in Pen and never appear in exports.</p>
+      <p className="text-[11px] text-ink-400 dark:text-ink-500">Notes stay in Ezuth and never appear in exports.</p>
     </div>
   )
 }

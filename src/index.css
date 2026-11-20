@@ -404,12 +404,12 @@ mark.sp-highlight {
 
 /* ══ Voice note ═══════════════════════════════════════════ */
 /* From Bencho's "Voice note" (bencho.dev, MIT — bencho.dev/licence),
-   adapted for Pen's phone bar.
+   adapted for Ezuth's phone bar.
 
-   Bencho's design tokens, mapped to Pen's on the component's own root so
-   nothing leaks out: the pill is Pen's dark primary slab (ink-950 with
-   white type; inverted in dark mode), Inter for the UI type, Pen's ink
-   scale for text, and brass, Pen's accent, for the focus ring. */
+   Bencho's design tokens, mapped to Ezuth's on the component's own root so
+   nothing leaks out: the pill is Ezuth's dark primary slab (ink-950 with
+   white type; inverted in dark mode), Inter for the UI type, Ezuth's ink
+   scale for text, and brass, Ezuth's accent, for the focus ring. */
 .vn-frame {
   --card: #ffffff;
   --fill-slab: var(--color-ink-950);
@@ -430,7 +430,7 @@ mark.sp-highlight {
 }
 
 /* In Bencho this is a fixed frame, so opening the pill never rescales the
-   block. In Pen the pill lives in the phone's bottom bar, which gives it its
+   block. In Ezuth the pill lives in the phone's bottom bar, which gives it its
    width: the frame fills its slot, and the bar folds its side controls away
    as the pill opens, which is where the overshoot now plays. */
 .vn-frame {
@@ -554,7 +554,7 @@ mark.sp-highlight {
   transition: scale 160ms cubic-bezier(0.22, 1, 0.36, 1), color 160ms ease;
 }
 
-/* Pen: the clip's play disc becomes "done" — the same solid
+/* Ezuth: the clip's play disc becomes "done" — the same solid
    disc sitting 6 inside the pill's curve */
 .vn-play {
   width: 44px;
@@ -574,7 +574,7 @@ mark.sp-highlight {
 
 .vn-x:hover { color: var(--fill-on, var(--ink)); }
 
-/* Pen: the language chip, so you can pick Malayalam or English
+/* Ezuth: the language chip, so you can pick Malayalam or English
    before you hold */
 .vn-lang {
   margin-left: auto;
@@ -595,7 +595,7 @@ mark.sp-highlight {
   outline-offset: 2px;
 }
 
-/* Pen: the hint sits above the pill, not below — on a phone the
+/* Ezuth: the hint sits above the pill, not below — on a phone the
    pill is at the bottom of the screen and the thumb covers it */
 .vn-hint {
   position: absolute;
@@ -655,7 +655,7 @@ mark.sp-highlight {
 
 @keyframes vn-grow { from { scale: 1 0.2; } }
 
-/* Pen's phone bar: page controls | voice | new page. While the pill is
+/* Ezuth's phone bar: page controls | voice | new page. While the pill is
    open the side controls fold away, with the pill's own overshoot. */
 .vn-row { display: flex; align-items: center; gap: 8px; }
 .vn-side {

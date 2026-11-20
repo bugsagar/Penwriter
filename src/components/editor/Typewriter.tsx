@@ -12,7 +12,7 @@ import { backspace, bell, carriageReturn, keyStrike, spaceBar } from '../../util
  * machine press as you type, with key, bell and carriage-return sounds.
  *
  * Look and feel inspired by Platen, a thermal typewriter by Saleh Kayyali
- * (https://github.com/mskayyali/platenwriter, MIT), redrawn in Pen's theme.
+ * (https://github.com/mskayyali/platenwriter, MIT), redrawn in Ezuth's theme.
  * No code from Platen is used.
  */
 
@@ -390,7 +390,7 @@ export function TypewriterDeck() {
       >
         <div className="flex items-center justify-between gap-3 whitespace-nowrap px-5" style={{ height: STRIP_H }}>
           <div className="flex min-w-0 items-baseline gap-2">
-            <span className="font-serif text-[20px] leading-none text-ink-900 dark:text-ink-50">Pen</span>
+            <span className="font-serif text-[20px] leading-none text-ink-900 dark:text-ink-50">Ezuth</span>
             {roomy && (
               <span className="text-[9.5px] font-semibold uppercase tracking-[0.22em] text-ink-500 dark:text-ink-400">
                 Typewriter

@@ -1,4 +1,4 @@
-// Pen service worker: makes the app installable and usable offline.
+// Ezuth service worker: makes the app installable and usable offline.
 // Pages are network-first (so updates show up), built assets cache-first.
 const CACHE = 'pen-v3'
 const SHELL = ['/', '/manifest.webmanifest', '/icons/icon-192.png?v=3', '/icons/icon-512.png?v=3', '/fav.png']

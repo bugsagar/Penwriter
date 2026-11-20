@@ -1,4 +1,4 @@
-# Reel — Screenplay Studio
+# Ezuth — Screenplay Studio
 
 A professional, keyboard-first screenwriting app for the browser. Write
 properly formatted screenplays with automatic element detection, manage
@@ -91,4 +91,4 @@ src/
   platen roller, with a carriage scale and the typing line held at the print
   line) is inspired by [Platen](https://github.com/mskayyali/platenwriter), a
   thermal typewriter by [Saleh Kayyali](https://x.com/mskayyali), MIT licensed.
-  Pen's version is redrawn in its own theme; no code from Platen is included.
+  Ezuth's version is redrawn in its own theme; no code from Platen is included.

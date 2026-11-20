@@ -32,7 +32,7 @@ export default function App() {
         fresh={fresh}
         onExit={() => {
           history.replaceState(null, '', location.pathname + location.search)
-          document.title = 'Pen — Screenplay Studio'
+          document.title = 'Ezuth — Screenplay Studio'
           setShare(null)
         }}
       />
