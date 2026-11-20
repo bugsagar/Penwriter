@@ -13,10 +13,37 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Ezuth" />
-    <title>Ezuth — Screenplay Studio</title>
+    <title>Ezuth — Free Screenwriting App in Malayalam &amp; English</title>
+    <meta name="description" content="Ezuth formats your screenplay as you type. Write scripts in Malayalam or English, use voice typing, see real page counts, export PDF and share view-only links. Free, in your browser and on your phone." />
+    <meta name="keywords" content="screenwriting app, screenplay software, Malayalam screenplay, Malayalam script writing, script writing app, voice typing, free screenwriting, Fountain, screenplay PDF" />
+    <link rel="canonical" href="https://www.ezuth.in/" />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="Sagar Manohar" />
+
+    <!-- tells Google this is a free web app -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Ezuth",
+        "url": "https://www.ezuth.in/",
+        "description": "Free screenwriting app that formats your screenplay as you type, in Malayalam and English, with voice typing, PDF export and share links.",
+        "applicationCategory": "DesignApplication",
+        "operatingSystem": "Web, Android, iOS, Windows, macOS",
+        "inLanguage": ["en", "ml"],
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" },
+        "author": { "@type": "Person", "name": "Sagar Manohar" }
+      }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- what search engines read before the app starts; replaced when it loads -->
+      <main style="max-width:640px;margin:15vh auto;padding:0 24px;font-family:system-ui,sans-serif;color:#555">
+        <h1 style="font-size:28px;color:#111">Ezuth — free screenwriting app</h1>
+        <p>Ezuth formats your screenplay as you type: scene headings, action, character names, dialogue and transitions. Write scripts in Malayalam or English, speak scenes with voice typing, see real page counts, export a formatted PDF or Fountain file, and share view-only links. Sign in with Google to keep scripts on every device, or keep them only on your computer.</p>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
