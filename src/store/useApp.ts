@@ -13,6 +13,10 @@ import {
 import { normalizeElements } from '../utils/scenes'
 import { emptyProject, sampleProject } from '../utils/sample'
 import { uid } from '../utils/id'
+import { cloudEnabled, type CloudUser } from '../utils/cloud'
+
+/** loading: checking sign-in · signedOut · signedIn (cloud) · local: no cloud set up, browser storage */
+export type AuthStatus = 'loading' | 'signedOut' | 'signedIn' | 'local'
 
 interface CreateInput {
   title: string
@@ -37,7 +41,15 @@ interface AppStore {
   undoStack: HistoryEntry[]
   redoStack: HistoryEntry[]
   saveFolder: FolderInfo
+  authStatus: AuthStatus
+  user: CloudUser | null
+  /** Last cloud save problem (e.g. offline); cleared on the next good save. */
+  cloudError: string | null
 
+  /** After sign-in: the writer's scripts from the cloud, and where they were. */
+  signedIn: (user: CloudUser, projects: Project[]) => void
+  signedOut: () => void
+  setCloudError: (msg: string | null) => void
   openHome: () => void
   openDashboard: () => void
   openEditor: (id: string) => void
@@ -100,7 +112,9 @@ function mutate(
 }
 
 export const useApp = create<AppStore>((set, get) => {
-  const projects = loadProjects()
+  // With the cloud, scripts arrive after sign-in (see useCloud); without it
+  // (local development before setup) they come from the browser as before.
+  const projects = cloudEnabled ? [] : loadProjects()
   const session = loadSession()
   const canRestore =
     session?.view === 'editor' &&
@@ -117,6 +131,32 @@ export const useApp = create<AppStore>((set, get) => {
     undoStack: [],
     redoStack: [],
     saveFolder: { path: null, name: null },
+    authStatus: cloudEnabled ? 'loading' : 'local',
+    user: null,
+    cloudError: null,
+
+    signedIn: (user, list) => {
+      const s = loadSession()
+      const restore = s?.view === 'editor' && s.activeProjectId && list.some((p) => p.id === s.activeProjectId)
+      const cur = get().view
+      set({
+        user,
+        authStatus: 'signedIn',
+        projects: list,
+        saveStatus: 'saved',
+        cloudError: null,
+        ...(restore
+          ? { view: 'editor' as const, activeProjectId: s!.activeProjectId }
+          : cur === 'home' && s?.view === 'dashboard'
+            ? { view: 'dashboard' as const }
+            : {}),
+      })
+    },
+
+    signedOut: () =>
+      set({ user: null, authStatus: 'signedOut', projects: [], activeProjectId: null, view: 'home', undoStack: [], redoStack: [] }),
+
+    setCloudError: (cloudError) => set({ cloudError }),
 
     openHome: () => {
       saveSession({ view: 'home', activeProjectId: null })

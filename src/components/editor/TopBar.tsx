@@ -1,4 +1,6 @@
 import {
+  Cloud,
+  CloudOff,
   ArrowLeft,
   Check,
   ChevronDown,
@@ -23,11 +25,21 @@ import { useApp } from '../../store/useApp'
 import { ShareDialog } from './ShareDialog'
 import { exportPdf } from '../../export/pdf'
 import { exportText, exportFountain } from '../../export/text'
-import { saveProjects } from '../../utils/storage'
+import { saveNow as saveEverything } from '../../hooks/useAutosave'
 import { Dropdown, IconButton, MenuItem, cn } from '../ui'
 import type { Project, SaveStatus } from '../../types'
 
 export function SaveIndicator({ status }: { status: SaveStatus }) {
+  const cloud = useApp((s) => s.authStatus === 'signedIn')
+  const cloudError = useApp((s) => s.cloudError)
+  if (cloudError) {
+    return (
+      <span title={cloudError} className="flex items-center gap-1.5 text-[11.5px] text-ink-500 dark:text-ink-400">
+        <CloudOff size={12} className="text-brass-500" />
+        {navigator.onLine ? 'Not saved yet' : 'Offline'}
+      </span>
+    )
+  }
   if (status === 'saving') {
     return (
       <span className="flex items-center gap-1.5 text-[11.5px] text-ink-400 dark:text-ink-500">
@@ -46,8 +58,8 @@ export function SaveIndicator({ status }: { status: SaveStatus }) {
   }
   return (
     <span className="flex items-center gap-1.5 text-[11.5px] text-ink-400 dark:text-ink-500">
-      <Check size={12} className="text-emerald-500" />
-      Saved
+      {cloud ? <Cloud size={12} className="text-emerald-500" /> : <Check size={12} className="text-emerald-500" />}
+      {cloud ? 'Saved to cloud' : 'Saved'}
     </span>
   )
 }
@@ -141,9 +153,7 @@ export function TopBar({
   const share = () => setShareOpen(true)
   const shareDialog = <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} project={project} />
 
-  const saveNow = () => {
-    saveProjects(useApp.getState().projects)
-  }
+  const saveNow = saveEverything
 
   if (compact) {
     const roundBtn = pill + ' h-11 w-11 shrink-0 justify-center active:bg-ink-50 dark:active:bg-ink-800'

@@ -23,6 +23,7 @@ import { pageCount, countWords } from '../utils/layout'
 import { Dropdown, IconButton, MenuItem, ConfirmItem, cn } from './ui'
 import { NewScreenplayDialog } from './NewScreenplayDialog'
 import { useOpenScreenplay } from './OpenScreenplay'
+import { AccountButton } from './Account'
 
 const TYPE_LABEL: Record<Project['type'], string> = {
   feature: 'Feature',
@@ -293,6 +294,7 @@ export function Dashboard() {
             <Plus size={16} />
             New screenplay
           </button>
+          <AccountButton />
         </div>
       </header>
 

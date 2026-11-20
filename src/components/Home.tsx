@@ -2,6 +2,8 @@ import { useApp } from '../store/useApp'
 import { cn } from './ui'
 import bgUrl from '../assets/bg.webp'
 import logoUrl from '../assets/logo.svg'
+import { useState } from 'react'
+import { GoogleMark, startSignIn } from './Account'
 
 /* ---------- Letters-style primitives (pill CTA, pill tag) ---------- */
 
@@ -32,6 +34,18 @@ function PrimaryPill({
 
 export function Home() {
   const openDashboard = useApp((s) => s.openDashboard)
+  const authStatus = useApp((s) => s.authStatus)
+  const [signInError, setSignInError] = useState<string | null>(null)
+  const needsSignIn = authStatus === 'signedOut'
+  const start = async () => {
+    if (!needsSignIn) return openDashboard()
+    setSignInError(null)
+    try {
+      await startSignIn()
+    } catch (e) {
+      setSignInError(e instanceof Error ? e.message : String(e))
+    }
+  }
 
   return (
     <div className="flex h-screen flex-col bg-paper-white font-display text-obsidian">
@@ -65,8 +79,19 @@ export function Home() {
             <br className="sm:hidden" /> Ezuth handles the formatting.
           </p>
           <div className="mt-8 max-sm:mt-5 flex flex-wrap items-center justify-center gap-3">
-            <PrimaryPill onClick={() => openDashboard()}>Start writing for free</PrimaryPill>
+            <PrimaryPill onClick={start}>
+              {needsSignIn && (
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white">
+                  <GoogleMark size={13} />
+                </span>
+              )}
+              Start writing for free
+            </PrimaryPill>
           </div>
+          {needsSignIn && (
+            <p className="mt-3 text-[12.5px] text-white/75">Sign in with Google to save your scripts</p>
+          )}
+          {signInError && <p className="mt-2 text-[12.5px] text-[#ffd0c7]">{signInError}</p>}
         </div>
       </section>
       </div>

@@ -102,3 +102,12 @@ export function saveSession(session: Session): void {
     /* ignore */
   }
 }
+
+/** Scripts kept in this browser from before cloud saving (moved up on sign-in). */
+export function clearLocalProjects(): void {
+  try {
+    localStorage.removeItem(KEY)
+  } catch {
+    /* storage unavailable */
+  }
+}

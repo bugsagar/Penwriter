@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, PanelLeftOpen, PanelRightOpen, Plus } from 'lucide-react'
 import { useApp } from '../../store/useApp'
 import { countWords, pageCount, sheetsOf } from '../../utils/layout'
-import { saveProjects } from '../../utils/storage'
+import { saveNow } from '../../hooks/useAutosave'
 import { flushSync } from 'react-dom'
 import { TopBar } from './TopBar'
 import { uid } from '../../utils/id'
@@ -187,8 +187,7 @@ export function Editor() {
       const mod = e.metaKey || e.ctrlKey
       if (mod && e.key.toLowerCase() === 's') {
         e.preventDefault()
-        saveProjects(useApp.getState().projects)
-        useApp.getState().markSaved()
+        saveNow()
       }
       if (mod && !e.shiftKey && e.key.toLowerCase() === 'f') {
         e.preventDefault()

@@ -2,28 +2,50 @@ import { useEffect } from 'react'
 import { useApp } from '../store/useApp'
 import { saveProjects } from '../utils/storage'
 import { hasFileHandle, writeProjectFile } from '../utils/files'
+import { syncNow } from './useCloud'
 
-/** Debounced autosave + flush on unload. */
+/** Save everything now: the cloud (or this browser, without cloud) and any linked files on the computer. */
+export function saveNow() {
+  const { projects, authStatus, markSaved } = useApp.getState()
+  for (const p of projects) {
+    if (p.savedOnComputer && hasFileHandle(p.id)) void writeProjectFile(p)
+  }
+  if (authStatus === 'local') {
+    saveProjects(projects)
+    markSaved()
+  } else if (authStatus === 'signedIn') {
+    void syncNow()
+  }
+}
+
+/**
+ * Debounced autosave of files on the computer ("Save on computer"), and — only
+ * when cloud saving isn't set up — of the browser copy. Cloud saving itself
+ * lives in useCloud.
+ */
 export function useAutosave() {
   const projects = useApp((s) => s.projects)
   const saveStatus = useApp((s) => s.saveStatus)
   const markSaved = useApp((s) => s.markSaved)
+  const authStatus = useApp((s) => s.authStatus)
 
   useEffect(() => {
     if (saveStatus !== 'unsaved') return
     const t = setTimeout(() => {
-      saveProjects(projects)
       for (const p of projects) {
         if (p.savedOnComputer && hasFileHandle(p.id)) void writeProjectFile(p)
       }
-      markSaved()
+      if (authStatus === 'local') {
+        saveProjects(projects)
+        markSaved()
+      }
     }, 700)
     return () => clearTimeout(t)
-  }, [projects, saveStatus, markSaved])
+  }, [projects, saveStatus, markSaved, authStatus])
 
   useEffect(() => {
     const flush = () => {
-      saveProjects(useApp.getState().projects)
+      if (useApp.getState().authStatus === 'local') saveProjects(useApp.getState().projects)
     }
     const onHide = () => {
       if (document.visibilityState === 'hidden') flush()
