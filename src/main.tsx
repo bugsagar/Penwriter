@@ -2,10 +2,20 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import { Analytics } from '@vercel/analytics/react'
+
+// Visitor counts (Vercel Web Analytics, no cookies). Only the page path is
+// sent: share links carry the whole script in the #hash and sign-in returns
+// carry a ?code, so both are stripped.
+const stripUrl = <T extends { url: string }>(e: T): T => {
+  const u = new URL(e.url)
+  return { ...e, url: u.origin + u.pathname }
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
+    <Analytics beforeSend={stripUrl} />
   </StrictMode>,
 )
 
