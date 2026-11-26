@@ -4,7 +4,7 @@ import { Check, ChevronLeft, ChevronRight, Link2, Lock, Minus, Plus, X } from 'l
 import logoUrl from '../assets/logo.svg'
 import { decodeShare, isProtected, linkFor, takeUnlock, WrongCodeError, type SharedScript } from '../utils/share'
 import { paginate, setLayoutMalayalamFont } from '../utils/layout'
-import { fontStackFor, FONT_SIZE_DEFAULT, malayalamFamily } from '../utils/fonts'
+import { fontStackFor, FONT_SIZE_DEFAULT, malayalamFamily, sameFontForEnglish } from '../utils/fonts'
 import { cn } from './ui'
 
 /*
@@ -76,7 +76,7 @@ export function ShareView({ code, fresh, onExit }: { code: string; fresh: boolea
 
   const pages = useMemo(() => {
     if (!script) return []
-    setLayoutMalayalamFont(malayalamFamily(script.malayalamFont))
+    setLayoutMalayalamFont(malayalamFamily(script.malayalamFont), false, sameFontForEnglish(script.fontFamily))
     return paginate(script.elements)
   }, [script])
   // a title page first, like the PDF: the script's name and who wrote it

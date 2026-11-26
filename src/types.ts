@@ -26,7 +26,7 @@ export interface ScreenplayElement {
 
 export type TextAlign = 'left' | 'center' | 'right' | 'justify'
 
-export type DocFontFamily = 'serif' | 'courier-prime' | 'courier-new' | 'system-mono'
+export type DocFontFamily = 'serif' | 'courier-prime' | 'courier-new' | 'system-mono' | 'malayalam'
 
 export type MalayalamFont = 'noto-sans' | 'noto-serif' | 'manjari' | 'gayathri' | 'anek' | 'baloo-chettan' | 'chilanka'
 

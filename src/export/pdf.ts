@@ -1,6 +1,6 @@
 import { StandardFonts, PDFDocument, rgb, type PDFFont, type PDFPage, type RGB } from 'pdf-lib'
 import type { Project } from '../types'
-import { malayalamFamily, loadMalayalamFont } from '../utils/fonts'
+import { malayalamFamily, loadMalayalamFont, sameFontForEnglish } from '../utils/fonts'
 import { setLayoutMalayalamFont, layoutFor, paginate, BLOCK_SPACING, FONT_SIZE, MARGIN_T, PAGE_W, sizeFor, lineH } from '../utils/layout'
 
 export function downloadBlob(bytes: Uint8Array, filename: string, mime: string) {
@@ -74,10 +74,18 @@ function canEncode(font: PDFFont, text: string): boolean {
 
 /** the script's Malayalam font, set when an export starts */
 let mlFamily = 'Noto Sans Malayalam'
+/** English in the Malayalam font too: then every line is drawn by the browser */
+let englishToo = false
 
 function cssFont(size: number, bold: boolean, italic: boolean): string {
-  return `${italic ? 'italic ' : ''}${bold ? '700 ' : ''}${size * RASTER_SCALE}px "Courier Prime", "Courier New", "${mlFamily}", "Noto Sans Malayalam", sans-serif`
+  const fams = englishToo
+    ? `"${mlFamily}", "Noto Sans Malayalam", sans-serif`
+    : `"Courier Prime", "Courier New", "${mlFamily}", "Noto Sans Malayalam", sans-serif`
+  return `${italic ? 'italic ' : ''}${bold ? '700 ' : ''}${size * RASTER_SCALE}px ${fams}`
 }
+
+/** Written as real PDF text in the built-in Courier? */
+const asPdfText = (font: PDFFont, text: string) => !englishToo && canEncode(font, text)
 
 let measureCanvas: CanvasRenderingContext2D | null = null
 function rasterWidth(text: string, size: number, bold: boolean, italic: boolean): number {
@@ -89,7 +97,7 @@ function rasterWidth(text: string, size: number, bold: boolean, italic: boolean)
 
 /** Width in points, whichever way the text will be drawn. */
 function widthOf(text: string, font: PDFFont, size: number, bold: boolean, italic: boolean): number {
-  return canEncode(font, text) ? font.widthOfTextAtSize(text, size) : rasterWidth(text, size, bold, italic)
+  return asPdfText(font, text) ? font.widthOfTextAtSize(text, size) : rasterWidth(text, size, bold, italic)
 }
 
 async function drawTextAny(
@@ -99,7 +107,7 @@ async function drawTextAny(
   o: { x: number; y: number; size: number; font: PDFFont; color: RGB; bold: boolean; italic: boolean },
 ) {
   if (!text) return
-  if (canEncode(o.font, text)) {
+  if (asPdfText(o.font, text)) {
     pg.drawText(text, { x: o.x, y: o.y, size: o.size, font: o.font, color: o.color })
     return
   }
@@ -130,8 +138,9 @@ export async function exportPdf(project: Project): Promise<void> {
   // Malayalam is drawn by the browser in the script's Malayalam font: make
   // sure it has downloaded first, and measure page breaks with it.
   mlFamily = malayalamFamily(project.settings.malayalamFont)
-  await loadMalayalamFont(project.settings.malayalamFont)
-  setLayoutMalayalamFont(mlFamily, true)
+  englishToo = sameFontForEnglish(project.settings.fontFamily)
+  await loadMalayalamFont(project.settings.malayalamFont, englishToo)
+  setLayoutMalayalamFont(mlFamily, true, englishToo)
   const doc = await PDFDocument.create()
   const regular = await doc.embedFont(StandardFonts.Courier)
   const bold = await doc.embedFont(StandardFonts.CourierBold)
@@ -153,13 +162,7 @@ export async function exportPdf(project: Project): Promise<void> {
     }
     if (hasTitle && hasAuthor) {
       const written = 'written by'
-      page.drawText(written, {
-        x: centerX(written, regular, 14),
-        y: 400,
-        size: 14,
-        font: regular,
-        color: INK,
-      })
+      await drawTextAny(doc, page, written, { x: centerX(written, regular, 14), y: 400, size: 14, font: regular, color: INK, bold: false, italic: false })
     }
     if (hasAuthor) {
       const author = project.author.trim().toUpperCase()
@@ -176,12 +179,15 @@ export async function exportPdf(project: Project): Promise<void> {
     let y = 792 - MARGIN_T
 
     // page number
-    pg.drawText(String(pageIndex), {
-      x: PAGE_W - 72 - regular.widthOfTextAtSize(String(pageIndex), FONT_SIZE),
+    const num = String(pageIndex)
+    await drawTextAny(doc, pg, num, {
+      x: PAGE_W - 72 - widthOf(num, regular, FONT_SIZE, false, false),
       y: 792 - 36,
       size: FONT_SIZE,
       font: regular,
       color: INK,
+      bold: false,
+      italic: false,
     })
 
     for (const item of p.items) {

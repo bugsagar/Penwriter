@@ -17,6 +17,20 @@
 @import '@fontsource/baloo-chettan-2/malayalam-400.css';
 @import '@fontsource/baloo-chettan-2/malayalam-700.css';
 @import '@fontsource/chilanka/malayalam-400.css';
+/* English letters in the Malayalam fonts, for "use this font for English too" (downloaded only then) */
+@import '@fontsource/noto-sans-malayalam/latin-400.css';
+@import '@fontsource/noto-sans-malayalam/latin-700.css';
+@import '@fontsource/noto-serif-malayalam/latin-400.css';
+@import '@fontsource/noto-serif-malayalam/latin-700.css';
+@import '@fontsource/manjari/latin-400.css';
+@import '@fontsource/manjari/latin-700.css';
+@import '@fontsource/gayathri/latin-400.css';
+@import '@fontsource/gayathri/latin-700.css';
+@import '@fontsource/anek-malayalam/latin-400.css';
+@import '@fontsource/anek-malayalam/latin-700.css';
+@import '@fontsource/baloo-chettan-2/latin-400.css';
+@import '@fontsource/baloo-chettan-2/latin-700.css';
+@import '@fontsource/chilanka/latin-400.css';
 @import 'tailwindcss';
 
 @custom-variant dark (&:where(.dark, .dark *));

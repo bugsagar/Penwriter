@@ -21,7 +21,12 @@ export const DOC_FONTS: DocFont[] = [
   { id: 'courier-new', label: 'Courier New', families: "'Courier New', Courier", generic: 'monospace' },
   { id: 'system-mono', label: 'System Mono', families: 'ui-monospace, Menlo, Consolas', generic: 'monospace' },
   { id: 'serif', label: 'Times (Serif)', families: "'Times New Roman', Times, Tinos, 'Liberation Serif'", generic: 'serif' },
+  // English written in the Malayalam font too (its families come from that font)
+  { id: 'malayalam', label: 'Same as Malayalam font', families: '', generic: 'sans-serif' },
 ]
+
+/** Does this script write English in its Malayalam font too? */
+export const sameFontForEnglish = (id: DocFontFamily | undefined) => id === 'malayalam'
 
 export interface MlFont {
   id: MalayalamFont
@@ -55,15 +60,18 @@ export function isMalayalamFont(id: unknown): id is MalayalamFont {
 
 /** The CSS font stack: English font, then the Malayalam font, then the generic. */
 export function fontStackFor(id: DocFontFamily | undefined, ml?: MalayalamFont): string {
+  if (sameFontForEnglish(id)) return `'${malayalamFamily(ml)}', 'Noto Sans Malayalam', sans-serif`
   const f = DOC_FONTS.find((d) => d.id === id) ?? DOC_FONTS[0]
   return `${f.families}, '${malayalamFamily(ml)}', ${f.generic}`
 }
 
 /** Ask the browser to download a Malayalam font now (canvas drawing doesn't). */
-export async function loadMalayalamFont(ml: MalayalamFont | undefined): Promise<void> {
+export async function loadMalayalamFont(ml: MalayalamFont | undefined, english = false): Promise<void> {
   try {
     const fam = malayalamFamily(ml)
-    await Promise.all([document.fonts.load(`16px '${fam}'`, 'മല'), document.fonts.load(`700 16px '${fam}'`, 'മല')])
+    // with English too, ask for both scripts' letters
+    const sample = english ? 'മലAa' : 'മല'
+    await Promise.all([document.fonts.load(`16px '${fam}'`, sample), document.fonts.load(`700 16px '${fam}'`, sample)])
   } catch {
     /* falls back to the system font */
   }

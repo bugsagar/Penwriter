@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Check, ChevronDown } from 'lucide-react'
 import { useApp } from '../../store/useApp'
-import { MALAYALAM_FONTS, MALAYALAM_FONT_DEFAULT } from '../../utils/fonts'
+import { MALAYALAM_FONTS, MALAYALAM_FONT_DEFAULT, sameFontForEnglish } from '../../utils/fonts'
 import type { MalayalamFont } from '../../types'
 import { cn } from '../ui'
 
@@ -14,6 +14,7 @@ const SAMPLE = 'മലയാളം കഥ'
  */
 export function MalayalamFontPicker({ compact }: { compact?: boolean }) {
   const current = useApp((s) => s.projects.find((p) => p.id === s.activeProjectId)?.settings.malayalamFont) ?? MALAYALAM_FONT_DEFAULT
+  const englishToo = useApp((s) => sameFontForEnglish(s.projects.find((p) => p.id === s.activeProjectId)?.settings.fontFamily))
   const setProjectSettings = useApp((s) => s.setProjectSettings)
   const [open, setOpen] = useState(false)
   const cur = MALAYALAM_FONTS.find((f) => f.id === current) ?? MALAYALAM_FONTS[0]
@@ -36,7 +37,7 @@ export function MalayalamFontPicker({ compact }: { compact?: boolean }) {
       >
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[15px] leading-snug" style={{ fontFamily: `'${cur.family}'` }}>
-            {SAMPLE}
+            {englishToo ? `${SAMPLE} Story` : SAMPLE}
           </span>
           <span className="block truncate text-[11.5px] text-ink-500 dark:text-ink-400">{cur.label}</span>
         </span>
@@ -61,7 +62,7 @@ export function MalayalamFontPicker({ compact }: { compact?: boolean }) {
                 )}
               >
                 <span className="block truncate text-[16px] leading-snug text-ink-900 dark:text-ink-50" style={{ fontFamily: `'${f.family}'` }}>
-                  {SAMPLE}
+                  {englishToo ? `${SAMPLE} Story` : SAMPLE}
                 </span>
                 <span className="block truncate pr-4 text-[11px] text-ink-500 dark:text-ink-400">{f.label}</span>
                 {on && <Check size={13} className="absolute bottom-2 right-2 text-ink-900 dark:text-ink-50" />}
@@ -70,6 +71,15 @@ export function MalayalamFontPicker({ compact }: { compact?: boolean }) {
           })}
         </div>
       )}
+      <label className="mt-2 flex cursor-pointer items-center gap-2 text-[12.5px] text-ink-700 dark:text-ink-200">
+        <input
+          type="checkbox"
+          className="h-3.5 w-3.5 accent-ink-900 dark:accent-ink-100"
+          checked={englishToo}
+          onChange={(e) => setProjectSettings({ fontFamily: e.target.checked ? 'malayalam' : 'courier-prime' })}
+        />
+        Use this font for English too
+      </label>
     </div>
   )
 }

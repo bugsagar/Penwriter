@@ -3,7 +3,7 @@ import { flushSync } from 'react-dom'
 import type { ScreenplayElement } from '../../types'
 import type { CSSProperties } from 'react'
 import { useApp } from '../../store/useApp'
-import { fontStackFor, FONT_SIZE_DEFAULT, loadMalayalamFont, malayalamFamily } from '../../utils/fonts'
+import { fontStackFor, FONT_SIZE_DEFAULT, loadMalayalamFont, malayalamFamily, sameFontForEnglish } from '../../utils/fonts'
 import { ElementBlock } from './ElementBlock'
 import { setCaret } from '../../utils/focus'
 import { uid } from '../../utils/id'
@@ -128,21 +128,22 @@ export function Paper({
   // A typewriter types in Courier — its column scale depends on it.
   const mlFont = settings?.malayalamFont
   const docFont = fontStackFor(typewriter ? 'courier-prime' : settings?.fontFamily, mlFont)
+  const englishToo = !typewriter && sameFontForEnglish(settings?.fontFamily)
   const docSize = settings?.fontSizePt ?? FONT_SIZE_DEFAULT
   // Page breaks measure Malayalam in its font: re-measure once it has loaded.
-  setLayoutMalayalamFont(malayalamFamily(mlFont))
+  setLayoutMalayalamFont(malayalamFamily(mlFont), false, englishToo)
   const [fontTick, setFontTick] = useState(0)
   useEffect(() => {
     let live = true
-    void loadMalayalamFont(mlFont).then(() => {
+    void loadMalayalamFont(mlFont, englishToo).then(() => {
       if (!live) return
-      setLayoutMalayalamFont(malayalamFamily(mlFont), true)
+      setLayoutMalayalamFont(malayalamFamily(mlFont), true, englishToo)
       setFontTick((n) => n + 1)
     })
     return () => {
       live = false
     }
-  }, [mlFont])
+  }, [mlFont, englishToo])
 
   // One sheet per scene ("page"), so every created page is visible as its
   // own layer with a 14px gap to the next — matching the Pages menu.
