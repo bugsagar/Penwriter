@@ -534,7 +534,8 @@ export function Editor() {
         writingMode={writingMode}
         onToggleSearch={toggleSearch}
         onToggleWritingMode={() => setWritingMode((w) => !w)}
-        tools={<MicButton voice={voice} className="mr-1 h-8 w-8 [&_svg]:h-[15px] [&_svg]:w-[15px]" />}
+        // typewriter: the keys fill the bottom, so the mic stays up here
+        tools={typewriter ? <MicButton voice={voice} className="mr-1 h-8 w-8 [&_svg]:h-[15px] [&_svg]:w-[15px]" /> : undefined}
         onOpenSettings={() => setSettingsOpen(true)}
         onGoHome={goHome}
       />
@@ -597,6 +598,14 @@ export function Editor() {
             </div>
           </div>
           {typewriter && <TypewriterDeck />}
+          {/* voice: the phone's pill, floating at the bottom of the page area */}
+          {!searchOpen && !typewriter && (
+            <div className="pointer-events-none sticky bottom-5 z-30 flex justify-center px-4">
+              <div className="pointer-events-auto w-[300px]">
+                <VoiceNote voice={voice} />
+              </div>
+            </div>
+          )}
         </main>
 
         {!writingMode &&
@@ -642,7 +651,7 @@ export function Editor() {
         </footer>
       )}
 
-      <VoicePanel voice={voice} floating />
+      <VoicePanel voice={voice} floating raised />
 
       {searchOpen && (
         <SearchBar

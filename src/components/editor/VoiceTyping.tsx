@@ -39,12 +39,23 @@ export function MicButton({ voice, className }: { voice: VoiceTyping; className?
 }
 
 /** Live transcript, language switch, and offline-model prompts. */
-export function VoicePanel({ voice, floating, compact }: { voice: VoiceTyping; floating?: boolean; compact?: boolean }) {
+export function VoicePanel({
+  voice,
+  floating,
+  compact,
+  raised,
+}: {
+  voice: VoiceTyping
+  floating?: boolean
+  compact?: boolean
+  /** sit above the desktop's bottom voice pill */
+  raised?: boolean
+}) {
   if (voice.status === 'idle') return null
   const panel = <PanelBody voice={voice} compact={compact} />
   if (!floating) return panel
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-12 z-40 flex justify-center px-4">
+    <div className={cn('pointer-events-none fixed inset-x-0 z-40 flex justify-center px-4', raised ? 'bottom-[136px]' : 'bottom-12')}>
       <div className="pointer-events-auto w-full max-w-[560px]">{panel}</div>
     </div>
   )
