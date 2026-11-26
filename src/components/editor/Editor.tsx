@@ -601,8 +601,8 @@ export function Editor() {
           {/* voice: the phone's pill, floating at the bottom of the page area */}
           {!searchOpen && !typewriter && (
             <div className="pointer-events-none sticky bottom-5 z-30 flex justify-center px-4">
-              {/* the phone's pill at 60% size: plenty for a mouse */}
-              <div className="pointer-events-auto w-[300px] origin-bottom scale-[0.6]">
+              {/* the phone's pill at 78% size: plenty for a mouse */}
+              <div className="pointer-events-auto w-[300px] origin-bottom scale-[0.78]">
                 <VoiceNote voice={voice} />
               </div>
             </div>
