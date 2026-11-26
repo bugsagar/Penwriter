@@ -3,6 +3,7 @@ import { useApp } from './store/useApp'
 import { useAutosave, useTheme } from './hooks/useAutosave'
 import { useCloud } from './hooks/useCloud'
 import { ClaimDrafts, SignInScreen } from './components/Account'
+import { Notice } from './components/OpenScreenplay'
 import { loadSession } from './utils/storage'
 import { Home } from './components/Home'
 import { Dashboard } from './components/Dashboard'
@@ -54,6 +55,7 @@ export default function App() {
     <>
       {view === 'editor' ? <Editor /> : view === 'dashboard' ? <Dashboard /> : <Home />}
       <ClaimDrafts />
+      <Notice />
     </>
   )
 }

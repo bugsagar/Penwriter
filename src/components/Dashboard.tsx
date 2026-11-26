@@ -284,7 +284,7 @@ export function Dashboard() {
             className="hidden h-10 items-center gap-2 rounded-full border border-ink-200/70 bg-white/80 px-4 text-[13.5px] font-medium text-ink-700 backdrop-blur transition-colors hover:text-ink-950 sm:flex dark:border-ink-800 dark:bg-ink-900/70 dark:text-ink-200"
           >
             <FolderOpen size={16} />
-            Open file
+            Open or import
           </button>
           <button
             type="button"
@@ -320,8 +320,8 @@ export function Dashboard() {
             />
             <ActionCard
               icon={<FolderOpen size={17} />}
-              title="Open a file"
-              hint="Ezuth .reel.json scripts"
+              title="Open or import"
+              hint="Word, PDF, text or Ezuth files"
               onClick={openFile}
             />
             <ActionCard

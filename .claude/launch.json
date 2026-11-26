@@ -26,6 +26,15 @@
         "--strictPort"
       ],
       "port": 4173
+    },
+    {
+      "name": "dev-local",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "VITE_SUPABASE_URL= VITE_SUPABASE_ANON_KEY= npx vite --port 5174 --strictPort"
+      ],
+      "port": 5174
     }
   ]
 }

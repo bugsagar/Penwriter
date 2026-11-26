@@ -55,6 +55,9 @@ interface AppStore {
   signedIn: (user: CloudUser, projects: Project[]) => void
   signedOut: () => void
   setCloudError: (msg: string | null) => void
+  /** A short message shown over any screen (e.g. after an import). */
+  notice: string | null
+  setNotice: (msg: string | null) => void
   openHome: () => void
   openDashboard: () => void
   openEditor: (id: string) => void
@@ -139,6 +142,7 @@ export const useApp = create<AppStore>((set, get) => {
     authStatus: cloudEnabled ? 'loading' : 'local',
     user: null,
     cloudError: null,
+    notice: null,
     unclaimed: [],
 
     signedIn: (user, list) => {
@@ -163,6 +167,7 @@ export const useApp = create<AppStore>((set, get) => {
       set({ user: null, authStatus: 'signedOut', projects: [], unclaimed: [], activeProjectId: null, view: 'home', undoStack: [], redoStack: [] }),
 
     setCloudError: (cloudError) => set({ cloudError }),
+    setNotice: (notice) => set({ notice }),
 
     openHome: () => {
       saveSession({ view: 'home', activeProjectId: null })

@@ -1,5 +1,6 @@
 import type { ElementType, Project } from '../types'
 import { emptyProject } from './sample'
+import { IMPORT_MIME, isImportable } from '../import/formats'
 
 declare global {
   interface SaveFilePickerOptions {
@@ -43,6 +44,14 @@ export const FILE_EXT = '.reel.json'
 
 const FILE_TYPES = [
   { description: 'Ezuth screenplay', accept: { 'application/json': [FILE_EXT] } },
+]
+
+/** What "Open file" lists: Ezuth files, plus Word, PDF and text to import. */
+const OPEN_TYPES = [
+  {
+    description: 'Screenplays (Ezuth, Word, PDF, text)',
+    accept: { 'application/json': [FILE_EXT], ...IMPORT_MIME },
+  },
 ]
 
 function serialize(project: Project): string {
@@ -127,17 +136,19 @@ export function parseProjectFile(text: string, fileName: string): Project {
  * Let the writer pick a screenplay file with the File System Access API (so
  * autosave keeps writing to that same file). Returns 'unsupported' when the
  * browser needs the <input type=file> fallback, and null when cancelled.
+ * A Word/PDF/text file comes back as the File itself, to be imported.
  */
-export async function pickOpenFile(): Promise<Project | null | 'unsupported'> {
+export async function pickOpenFile(): Promise<Project | File | null | 'unsupported'> {
   const picker = window.showOpenFilePicker
   if (!picker) return 'unsupported'
   let handle: FileSystemFileHandle
   try {
-    ;[handle] = await picker({ multiple: false, types: FILE_TYPES, excludeAcceptAllOption: true })
+    ;[handle] = await picker({ multiple: false, types: OPEN_TYPES, excludeAcceptAllOption: true })
   } catch {
     return null // cancelled
   }
   const file = await handle.getFile()
+  if (isImportable(file.name)) return file
   const project = parseProjectFile(await file.text(), file.name)
   handles.set(project.id, handle)
   return project
