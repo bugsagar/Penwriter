@@ -53,6 +53,17 @@ export function layoutFor(type: ElementType): ElementLayout {
 }
 
 const ctxCache = new Map<number, CanvasRenderingContext2D | null>()
+let mlFamily = 'Noto Sans Malayalam'
+
+/**
+ * Measure Malayalam in the script's Malayalam font (line wrapping and page
+ * breaks follow it). Call again once that font has downloaded.
+ */
+export function setLayoutMalayalamFont(family: string, force = false): void {
+  if (family === mlFamily && !force) return
+  mlFamily = family
+  ctxCache.clear()
+}
 
 function measureCtx(sizePt: number): CanvasRenderingContext2D {
   let ctx = ctxCache.get(sizePt)
@@ -60,7 +71,7 @@ function measureCtx(sizePt: number): CanvasRenderingContext2D {
     const canvas = document.createElement('canvas')
     ctx = canvas.getContext('2d')
     if (ctx) {
-      ctx.font = `${sizePt * (4 / 3)}px "Courier Prime", "Courier New", monospace`
+      ctx.font = `${sizePt * (4 / 3)}px "Courier Prime", "Courier New", "${mlFamily}", monospace`
     }
     ctxCache.set(sizePt, ctx)
   }

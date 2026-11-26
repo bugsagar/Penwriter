@@ -3,6 +3,20 @@
 @import '@fontsource/inter/600.css';
 @import '@fontsource/courier-prime/400.css';
 @import '@fontsource/courier-prime/700.css';
+/* Malayalam fonts (Google Fonts, served from Ezuth; each downloads only when used) */
+@import '@fontsource/noto-sans-malayalam/malayalam-400.css';
+@import '@fontsource/noto-sans-malayalam/malayalam-700.css';
+@import '@fontsource/noto-serif-malayalam/malayalam-400.css';
+@import '@fontsource/noto-serif-malayalam/malayalam-700.css';
+@import '@fontsource/manjari/malayalam-400.css';
+@import '@fontsource/manjari/malayalam-700.css';
+@import '@fontsource/gayathri/malayalam-400.css';
+@import '@fontsource/gayathri/malayalam-700.css';
+@import '@fontsource/anek-malayalam/malayalam-400.css';
+@import '@fontsource/anek-malayalam/malayalam-700.css';
+@import '@fontsource/baloo-chettan-2/malayalam-400.css';
+@import '@fontsource/baloo-chettan-2/malayalam-700.css';
+@import '@fontsource/chilanka/malayalam-400.css';
 @import 'tailwindcss';
 
 @custom-variant dark (&:where(.dark, .dark *));

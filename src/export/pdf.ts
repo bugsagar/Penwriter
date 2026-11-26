@@ -1,6 +1,7 @@
 import { StandardFonts, PDFDocument, rgb, type PDFFont, type PDFPage, type RGB } from 'pdf-lib'
 import type { Project } from '../types'
-import { layoutFor, paginate, BLOCK_SPACING, FONT_SIZE, MARGIN_T, PAGE_W, sizeFor, lineH } from '../utils/layout'
+import { malayalamFamily, loadMalayalamFont } from '../utils/fonts'
+import { setLayoutMalayalamFont, layoutFor, paginate, BLOCK_SPACING, FONT_SIZE, MARGIN_T, PAGE_W, sizeFor, lineH } from '../utils/layout'
 
 export function downloadBlob(bytes: Uint8Array, filename: string, mime: string) {
   const blob = new Blob([bytes as BlobPart], { type: mime })
@@ -71,8 +72,11 @@ function canEncode(font: PDFFont, text: string): boolean {
   }
 }
 
+/** the script's Malayalam font, set when an export starts */
+let mlFamily = 'Noto Sans Malayalam'
+
 function cssFont(size: number, bold: boolean, italic: boolean): string {
-  return `${italic ? 'italic ' : ''}${bold ? '700 ' : ''}${size * RASTER_SCALE}px "Courier Prime", "Courier New", "Noto Sans Malayalam", "Manjari", "Kartika", sans-serif`
+  return `${italic ? 'italic ' : ''}${bold ? '700 ' : ''}${size * RASTER_SCALE}px "Courier Prime", "Courier New", "${mlFamily}", "Noto Sans Malayalam", sans-serif`
 }
 
 let measureCanvas: CanvasRenderingContext2D | null = null
@@ -123,6 +127,11 @@ function safeName(title: string): string {
 }
 
 export async function exportPdf(project: Project): Promise<void> {
+  // Malayalam is drawn by the browser in the script's Malayalam font: make
+  // sure it has downloaded first, and measure page breaks with it.
+  mlFamily = malayalamFamily(project.settings.malayalamFont)
+  await loadMalayalamFont(project.settings.malayalamFont)
+  setLayoutMalayalamFont(mlFamily, true)
   const doc = await PDFDocument.create()
   const regular = await doc.embedFont(StandardFonts.Courier)
   const bold = await doc.embedFont(StandardFonts.CourierBold)

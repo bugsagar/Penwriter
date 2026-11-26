@@ -3,8 +3,8 @@ import type { CSSProperties } from 'react'
 import { Check, ChevronLeft, ChevronRight, Link2, Lock, Minus, Plus, X } from 'lucide-react'
 import logoUrl from '../assets/logo.svg'
 import { decodeShare, isProtected, linkFor, takeUnlock, WrongCodeError, type SharedScript } from '../utils/share'
-import { paginate } from '../utils/layout'
-import { fontStackFor, FONT_SIZE_DEFAULT } from '../utils/fonts'
+import { paginate, setLayoutMalayalamFont } from '../utils/layout'
+import { fontStackFor, FONT_SIZE_DEFAULT, malayalamFamily } from '../utils/fonts'
 import { cn } from './ui'
 
 /*
@@ -74,7 +74,11 @@ export function ShareView({ code, fresh, onExit }: { code: string; fresh: boolea
     setUnlocking(false)
   }
 
-  const pages = useMemo(() => (script ? paginate(script.elements) : []), [script])
+  const pages = useMemo(() => {
+    if (!script) return []
+    setLayoutMalayalamFont(malayalamFamily(script.malayalamFont))
+    return paginate(script.elements)
+  }, [script])
   // a title page first, like the PDF: the script's name and who wrote it
   const hasTitlePage = !!script && !!(script.title.trim() || script.author.trim())
   const sheetCount = pages.length + (hasTitlePage ? 1 : 0)
@@ -230,7 +234,7 @@ export function ShareView({ code, fresh, onExit }: { code: string; fresh: boolea
     )
   }
 
-  const docFont = fontStackFor(script?.fontFamily)
+  const docFont = fontStackFor(script?.fontFamily, script?.malayalamFont)
   const docSize = script?.fontSizePt ?? FONT_SIZE_DEFAULT
 
   return (

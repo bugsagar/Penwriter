@@ -28,6 +28,8 @@ export type TextAlign = 'left' | 'center' | 'right' | 'justify'
 
 export type DocFontFamily = 'serif' | 'courier-prime' | 'courier-new' | 'system-mono'
 
+export type MalayalamFont = 'noto-sans' | 'noto-serif' | 'manjari' | 'gayathri' | 'anek' | 'baloo-chettan' | 'chilanka'
+
 export interface Character {
   id: string
   name: string
@@ -77,6 +79,8 @@ export interface Project {
     showSceneNumbers: boolean
     autoDetectElements: boolean
     fontFamily: DocFontFamily
+    /** font for Malayalam letters (English keeps fontFamily); unset = Noto Sans Malayalam */
+    malayalamFont?: MalayalamFont
     fontSizePt: number
   }
 }

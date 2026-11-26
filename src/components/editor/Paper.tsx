@@ -3,12 +3,12 @@ import { flushSync } from 'react-dom'
 import type { ScreenplayElement } from '../../types'
 import type { CSSProperties } from 'react'
 import { useApp } from '../../store/useApp'
-import { fontStackFor, FONT_SIZE_DEFAULT } from '../../utils/fonts'
+import { fontStackFor, FONT_SIZE_DEFAULT, loadMalayalamFont, malayalamFamily } from '../../utils/fonts'
 import { ElementBlock } from './ElementBlock'
 import { setCaret } from '../../utils/focus'
 import { uid } from '../../utils/id'
 import { nextTypeAfterEnter } from '../../utils/detect'
-import { sheetsOf, type SheetPart } from '../../utils/layout'
+import { setLayoutMalayalamFont, sheetsOf, type SheetPart } from '../../utils/layout'
 
 interface PaperProps {
   elements: ScreenplayElement[]
@@ -126,14 +126,30 @@ export function Paper({
 
   const autoDetect = settings?.autoDetectElements ?? true
   // A typewriter types in Courier — its column scale depends on it.
-  const docFont = fontStackFor(typewriter ? 'courier-prime' : settings?.fontFamily)
+  const mlFont = settings?.malayalamFont
+  const docFont = fontStackFor(typewriter ? 'courier-prime' : settings?.fontFamily, mlFont)
   const docSize = settings?.fontSizePt ?? FONT_SIZE_DEFAULT
+  // Page breaks measure Malayalam in its font: re-measure once it has loaded.
+  setLayoutMalayalamFont(malayalamFamily(mlFont))
+  const [fontTick, setFontTick] = useState(0)
+  useEffect(() => {
+    let live = true
+    void loadMalayalamFont(mlFont).then(() => {
+      if (!live) return
+      setLayoutMalayalamFont(malayalamFamily(mlFont), true)
+      setFontTick((n) => n + 1)
+    })
+    return () => {
+      live = false
+    }
+  }, [mlFont])
 
   // One sheet per scene ("page"), so every created page is visible as its
   // own layer with a 14px gap to the next — matching the Pages menu.
   const pages = useMemo(() => {
+    void fontTick
     return sheetsOf(elements)
-  }, [elements])
+  }, [elements, fontTick])
   /*
    * A line that no longer fits moves onto the next sheet, which re-creates it
    * there — and a re-created line has no caret. Remember where the caret was

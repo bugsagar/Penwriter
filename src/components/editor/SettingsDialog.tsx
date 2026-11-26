@@ -1,6 +1,7 @@
 import { Maximize2, FileText, Keyboard } from 'lucide-react'
 import { useApp } from '../../store/useApp'
 import { Modal, Button } from '../ui'
+import { MalayalamFontPicker } from './MalayalamFontPicker'
 
 export function SettingsDialog({
   open,
@@ -90,6 +91,10 @@ export function SettingsDialog({
 
         <div className="space-y-3">
           <h3 className="text-[12px] font-semibold text-ink-800 dark:text-ink-100">Screenplay</h3>
+          <div>
+            <p className="mb-1.5 text-[13px] text-ink-700 dark:text-ink-200">Malayalam font</p>
+            <MalayalamFontPicker />
+          </div>
           <label className="flex items-center justify-between gap-4 text-[13px] text-ink-700 dark:text-ink-200">
             <span>
               Automatic element detection

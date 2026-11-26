@@ -1,5 +1,6 @@
 import { Inflate, deflateSync } from 'fflate'
-import type { DocFontFamily, ElementType, Project, ScreenplayElement } from '../types'
+import type { DocFontFamily, ElementType, MalayalamFont, Project, ScreenplayElement } from '../types'
+import { isMalayalamFont } from './fonts'
 
 /*
  * View-only share links, with no server.
@@ -25,6 +26,7 @@ interface Payload {
   a: string // author
   f?: DocFontFamily
   s?: number // font size, pt
+  m?: string // Malayalam font
   e: Array<[number, string] | [number, string, Extras]>
 }
 
@@ -33,6 +35,7 @@ export interface SharedScript {
   author: string
   fontFamily?: DocFontFamily
   fontSizePt?: number
+  malayalamFont?: MalayalamFont
   elements: ScreenplayElement[]
 }
 
@@ -143,6 +146,7 @@ export async function encodeShare(p: Project, lockCode?: string): Promise<string
     a: p.author,
     f: p.settings?.fontFamily,
     s: p.settings?.fontSizePt,
+    m: p.settings?.malayalamFont,
     e: p.elements.map((el) => {
       const x: Extras = {}
       if (el.bold !== undefined) x.bold = el.bold
@@ -201,6 +205,7 @@ export async function decodeShare(code: string, lockCode?: string): Promise<Shar
     author: String(p.a ?? ''),
     fontFamily: typeof p.f === 'string' ? p.f : undefined,
     fontSizePt: typeof p.s === 'number' ? p.s : undefined,
+    malayalamFont: isMalayalamFont(p.m) ? p.m : undefined,
     elements: p.e.map((row, i) => {
       const [t, text, x] = Array.isArray(row) ? row : []
       return {
