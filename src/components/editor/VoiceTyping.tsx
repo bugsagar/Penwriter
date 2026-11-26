@@ -55,7 +55,7 @@ export function VoicePanel({
   const panel = <PanelBody voice={voice} compact={compact} />
   if (!floating) return panel
   return (
-    <div className={cn('pointer-events-none fixed inset-x-0 z-40 flex justify-center px-4', raised ? 'bottom-[136px]' : 'bottom-12')}>
+    <div className={cn('pointer-events-none fixed inset-x-0 z-40 flex justify-center px-4', raised ? 'bottom-[100px]' : 'bottom-12')}>
       <div className="pointer-events-auto w-full max-w-[560px]">{panel}</div>
     </div>
   )
