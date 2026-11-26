@@ -42,6 +42,8 @@ export const MALAYALAM_FONTS: MlFont[] = [
   { id: 'anek', label: 'Anek Malayalam', family: 'Anek Malayalam' },
   { id: 'baloo-chettan', label: 'Baloo Chettan 2', family: 'Baloo Chettan 2' },
   { id: 'chilanka', label: 'Chilanka (handwritten)', family: 'Chilanka' },
+  { id: 'arima', label: 'Arima', family: 'Arima' },
+  { id: 'google-sans', label: 'Google Sans', family: 'Google Sans' },
 ]
 
 export const MALAYALAM_FONT_DEFAULT: MalayalamFont = 'noto-sans'

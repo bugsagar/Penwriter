@@ -22,8 +22,8 @@ import type { ElementType, Project, ScreenplayElement, TextAlign } from '../../t
 import { ELEMENT_LABELS, normalizeCharacterName } from '../../utils/detect'
 import { countWords, pageCount } from '../../utils/layout'
 import { deriveScenes, headingForScene } from '../../utils/scenes'
-import { DOC_FONTS, FONT_SIZE_MAX, FONT_SIZE_MIN } from '../../utils/fonts'
-import { MalayalamFontPicker } from './MalayalamFontPicker'
+import { FONT_SIZE_MAX, FONT_SIZE_MIN } from '../../utils/fonts'
+import { FontPicker } from './FontPicker'
 import { uid } from '../../utils/id'
 import { detectCharacters } from './CharacterList'
 import { IconButton, cn } from '../ui'
@@ -309,23 +309,8 @@ function FormatPanel({
       {/* ---------- Document ---------- */}
       <section className="space-y-3">
         <h3 className="text-[13px] font-semibold text-ink-900 dark:text-ink-50">Document</h3>
-        <Field label="English font">
-          <select
-            className={inputCls}
-            value={project.settings.fontFamily}
-            onChange={(e) =>
-              setProjectSettings({ fontFamily: e.target.value as Project['settings']['fontFamily'] })
-            }
-          >
-            {DOC_FONTS.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.label}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Malayalam font">
-          <MalayalamFontPicker compact />
+        <Field label="Font">
+          <FontPicker compact />
         </Field>
         <Field label="Font size">
           <div className="flex items-center gap-2">
