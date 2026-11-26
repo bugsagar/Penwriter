@@ -42,13 +42,13 @@ export function Sidebar({ project, activeId, onJump, onCollapse }: Props) {
     <aside className="flex h-full w-full shrink-0 flex-col rounded-xl md:w-60 border border-ink-200/70 bg-white dark:border-ink-800 dark:bg-ink-900">
       <div className="flex items-center justify-between px-3.5 pb-2 pt-3.5">
         <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-400 dark:text-ink-500">
-          Scenes
+          Pages
         </span>
         <div className="flex items-center gap-1">
           <span className="rounded-full bg-ink-100 px-2 py-0.5 text-[11px] font-medium tabular-nums text-ink-500 dark:bg-ink-800 dark:text-ink-400">
             {chunks.length}
           </span>
-          <IconButton title="Collapse scenes" onClick={onCollapse} className="h-6 w-6">
+          <IconButton title="Collapse pages" onClick={onCollapse} className="h-6 w-6">
             <PanelLeftClose size={14} />
           </IconButton>
         </div>
@@ -57,7 +57,7 @@ export function Sidebar({ project, activeId, onJump, onCollapse }: Props) {
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
         {chunks.map((chunk, ci) => {
           const first = chunk[0]
-          const preview = first?.text.trim().slice(0, 34) || 'Empty scene'
+          const preview = first?.text.trim().slice(0, 34) || 'Empty page'
           const active = ci === activeChunkIndex
           return (
             <div
@@ -79,7 +79,7 @@ export function Sidebar({ project, activeId, onJump, onCollapse }: Props) {
                 </span>
                 <span className="min-w-0">
                   <span className="block text-[13px] font-semibold text-ink-900 dark:text-ink-50">
-                    Scene {ci + 1}
+                    Page {ci + 1}
                   </span>
                   <span className="block truncate text-[11px] text-ink-400 dark:text-ink-500">
                     {preview}
@@ -92,7 +92,7 @@ export function Sidebar({ project, activeId, onJump, onCollapse }: Props) {
               >
                 <Dropdown
                   trigger={
-                    <IconButton title={`Scene ${ci + 1} options`} className="h-6 w-6">
+                    <IconButton title={`Page ${ci + 1} options`} className="h-6 w-6">
                       <MoreHorizontal size={14} />
                     </IconButton>
                   }

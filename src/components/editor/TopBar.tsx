@@ -211,7 +211,7 @@ export function TopBar({
               <div className="my-1 border-t border-ink-100 dark:border-ink-800" />
               <MenuItem
                 icon={<Files size={15} />}
-                label="Scenes"
+                label="Pages"
                 onClick={() => {
                   close()
                   onOpenPages?.()
