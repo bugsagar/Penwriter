@@ -5,6 +5,7 @@
  * committed.
  */
 import { SAMPLE_RATE } from './features'
+import workletUrl from './rec.worklet.js?url&no-inline'
 
 /* ---------- worker client ---------- */
 let worker: Worker | null = null
@@ -59,20 +60,6 @@ export function transcribe(samples: Float32Array): Promise<string> {
 }
 
 /* ---------- microphone capture ---------- */
-const WORKLET = `
-class PenRec extends AudioWorkletProcessor {
-  constructor() { super(); this.buf = []; this.n = 0 }
-  process(inputs) {
-    const ch = inputs[0] && inputs[0][0]
-    if (ch) { this.buf.push(new Float32Array(ch)); this.n += ch.length
-      if (this.n >= sampleRate / 10) { const out = new Float32Array(this.n); let o = 0
-        for (const b of this.buf) { out.set(b, o); o += b.length }
-        this.port.postMessage(out, [out.buffer]); this.buf = []; this.n = 0 } }
-    return true
-  }
-}
-registerProcessor('pen-rec', PenRec)
-`
 
 /** Linear resample to 16 kHz. */
 function resample(input: Float32Array, from: number): Float32Array {
@@ -107,9 +94,7 @@ export async function startOffline(opts: {
     audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
   })
   const ctx = new AudioContext()
-  const url = URL.createObjectURL(new Blob([WORKLET], { type: 'application/javascript' }))
-  await ctx.audioWorklet.addModule(url)
-  URL.revokeObjectURL(url)
+  await ctx.audioWorklet.addModule(workletUrl)
   const src = ctx.createMediaStreamSource(stream)
   const node = new AudioWorkletNode(ctx, 'pen-rec')
   src.connect(node)
